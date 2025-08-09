@@ -31,7 +31,7 @@ add_library(CommunicationModel STATIC ${SOURCES} ${HEADERS})
 target_include_directories(CommunicationModel PUBLIC source/header)
 
 # 选项：是否构建测试
-option(BUILD_TESTS "Build unit tests" OFF)
+option(BUILD_TESTS "Build tests" ON)
 
 # 选项：是否构建示例
 option(BUILD_EXAMPLES "Build examples" ON)
