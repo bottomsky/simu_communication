@@ -3,6 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <cmath>
 
 // 静态成员定义
 std::unordered_map<EnvironmentType, EnvironmentLossConfig> EnvironmentLossConfigManager::configs_;
@@ -254,4 +255,53 @@ bool EnvironmentLossConfigManager::loadConfigsFromFile(const std::string& filena
     } catch (const std::exception& e) {
         return false;
     }
+}
+
+double EnvironmentLossConfigManager::calculateEnvironmentPathLoss(double distance_km, EnvironmentType envType) {
+    if (distance_km <= 0.0) {
+        return 0.0;
+    }
+    
+    // 获取环境配置
+    const EnvironmentLossConfig& config = getConfig(envType);
+    
+    // 计算环境路径损耗指数的影响
+    // 修正公式: EnvironmentPathLoss = 10*n*log10(d) - 10*2*log10(d)
+    // 其中 n 是环境路径损耗指数，2 是自由空间的路径损耗指数
+    double environmentPathLoss = 10.0 * (config.pathLossExponent - 2.0) * std::log10(distance_km);
+    
+    return environmentPathLoss;
+}
+
+double EnvironmentLossConfigManager::calculateFrequencyFactorLoss(double frequency_MHz, EnvironmentType envType) {
+    if (frequency_MHz <= 0.0) {
+        return 0.0;
+    }
+    
+    // 获取环境配置
+    const EnvironmentLossConfig& config = getConfig(envType);
+    
+    // 计算频率因子损耗
+    // 公式: FrequencyLoss = frequencyFactor * log10(f/1000) * 2.0
+    // 其中 f 是频率(MHz)，除以1000转换为GHz
+    double frequencyLoss = config.frequencyFactor * std::log10(frequency_MHz / 1000.0) * 2.0;
+    
+    return frequencyLoss;
+}
+
+double EnvironmentLossConfigManager::calculateTotalEnvironmentLoss(double distance_km, double frequency_MHz, EnvironmentType envType) {
+    if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
+        return 0.0;
+    }
+    
+    // 获取环境配置
+    const EnvironmentLossConfig& config = getConfig(envType);
+    
+    // 计算各种环境损耗分量
+    double environmentPathLoss = calculateEnvironmentPathLoss(distance_km, envType);
+    double environmentLoss = config.environmentLoss;
+    double frequencyFactorLoss = calculateFrequencyFactorLoss(frequency_MHz, envType);
+    
+    // 返回总环境损耗
+    return environmentPathLoss + environmentLoss + frequencyFactorLoss;
 }

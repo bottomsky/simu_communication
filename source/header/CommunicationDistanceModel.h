@@ -70,6 +70,15 @@ public:
     // 计算实际有效通信距离
     double calculateEffectiveDistance() const;
 
+    // 路径损耗计算方法
+    double calculatePathLoss(double distance_km, double frequency_MHz) const;
+    
+    // 计算自由空间路径损耗
+    double calculateFreeSpacePathLoss(double distance_km, double frequency_MHz) const;
+    
+    // 计算总路径损耗（包含环境因子）
+    double calculateTotalPathLoss(double distance_km, double frequency_MHz) const;
+
     // 获取参数信息字符串
     std::string getParameterInfo() const;
 };

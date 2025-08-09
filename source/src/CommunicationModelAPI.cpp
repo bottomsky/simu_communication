@@ -108,20 +108,10 @@ double CommunicationModelAPI::calculateOverallSignalStrength() const {
     // 基础信号强度
     double baseSignal = environment_.transmitPower;
     
-    // 从配置获取环境损耗系数
-    const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(environment_.environmentType);
+    // 使用距离模型计算总路径损耗（包含所有损耗因子）
+    double totalPathLoss = distanceModel_->calculateTotalPathLoss(environment_.distance, environment_.frequency);
     
-    // 计算路径损耗 (简化的自由空间路径损耗模型)
-    double wavelength = 300.0 / environment_.frequency; // MHz to meters
-    double freeSpaceRef = 20.0 * std::log10(4.0 * M_PI / wavelength);
-    double pathLoss = freeSpaceRef + 10.0 * config.pathLossExponent * std::log10(environment_.distance * 1000.0);
-    
-    double envLoss = config.environmentLoss;
-    
-    // 考虑频率因子的影响
-    double frequencyLoss = config.frequencyFactor * std::log10(environment_.frequency / 1000.0) * 2.0;
-    
-    return baseSignal - pathLoss - envLoss - frequencyLoss;
+    return baseSignal - totalPathLoss;
 }
 
 double CommunicationModelAPI::calculateOverallSNR() const {
@@ -400,16 +390,10 @@ double CommunicationModelAPI::calculateRequiredPower(double targetRange) const {
     const_cast<CommunicationModelAPI*>(this)->environment_.distance = targetRange;
     const_cast<CommunicationModelAPI*>(this)->updateModelsFromEnvironment();
     
-    // 计算所需功率 (使用简化的路径损耗模型)
-    const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(environment_.environmentType);
-    double wavelength = 300.0 / environment_.frequency; // MHz to meters
-    double freeSpaceRef = 20.0 * std::log10(4.0 * M_PI / wavelength);
-    double pathLoss = freeSpaceRef + 10.0 * config.pathLossExponent * std::log10(targetRange * 1000.0);
-    double environmentLoss = config.environmentLoss;
-    double frequencyLoss = config.frequencyFactor * std::log10(environment_.frequency / 1000.0) * 2.0;
-    double totalLoss = pathLoss + environmentLoss + frequencyLoss;
+    // 使用CommunicationDistanceModel计算总路径损耗
+    double totalPathLoss = distanceModel_->calculateTotalPathLoss(targetRange, environment_.frequency);
     
-    double requiredPower = environment_.noisePower + 10.0 + totalLoss; // 10dB SNR余量
+    double requiredPower = environment_.noisePower + 10.0 + totalPathLoss; // 10dB SNR余量
     
     // 恢复原始距离
     const_cast<CommunicationModelAPI*>(this)->environment_.distance = originalDistance;

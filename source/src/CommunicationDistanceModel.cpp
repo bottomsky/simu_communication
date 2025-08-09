@@ -158,6 +158,48 @@ double CommunicationDistanceModel::calculateEffectiveDistance() const {
     return std::min(envLimitedDistance * powerDistanceFactor, maxLineOfSight);
 }
 
+// 计算自由空间路径损耗实现
+double CommunicationDistanceModel::calculateFreeSpacePathLoss(double distance_km, double frequency_MHz) const {
+    if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
+        return 0.0;
+    }
+    
+    // 自由空间路径损耗公式: FSPL = 20*log10(d) + 20*log10(f) + 32.45
+    // 其中 d 为距离(km)，f 为频率(MHz)
+    double fspl = 20.0 * std::log10(distance_km) + 20.0 * std::log10(frequency_MHz) + 32.45;
+    return fspl;
+}
+
+// 计算路径损耗实现（包含环境因子）
+double CommunicationDistanceModel::calculatePathLoss(double distance_km, double frequency_MHz) const {
+    if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
+        return 0.0;
+    }
+    
+    // 计算自由空间路径损耗
+    double freeSpacePathLoss = calculateFreeSpacePathLoss(distance_km, frequency_MHz);
+    
+    // 使用EnvironmentLossConfigManager计算环境路径损耗
+    double environmentPathLoss = EnvironmentLossConfigManager::calculateEnvironmentPathLoss(distance_km, envType);
+    
+    return freeSpacePathLoss + environmentPathLoss;
+}
+
+// 计算总路径损耗实现（包含所有损耗因子）
+double CommunicationDistanceModel::calculateTotalPathLoss(double distance_km, double frequency_MHz) const {
+    if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
+        return 0.0;
+    }
+    
+    // 计算自由空间路径损耗
+    double freeSpacePathLoss = calculateFreeSpacePathLoss(distance_km, frequency_MHz);
+    
+    // 使用EnvironmentLossConfigManager计算总环境损耗
+    double totalEnvironmentLoss = EnvironmentLossConfigManager::calculateTotalEnvironmentLoss(distance_km, frequency_MHz, envType);
+    
+    return freeSpacePathLoss + totalEnvironmentLoss;
+}
+
 // 获取参数信息字符串实现
 std::string CommunicationDistanceModel::getParameterInfo() const {
     std::stringstream ss;

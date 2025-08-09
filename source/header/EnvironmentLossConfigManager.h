@@ -138,6 +138,31 @@ public:
      * @return 如果加载成功返回true，否则返回false
      */
     static bool loadConfigsFromFile(const std::string& filename);
+    
+    /**
+     * @brief 计算环境路径损耗
+     * @param distance_km 距离(km)
+     * @param envType 环境类型
+     * @return 环境路径损耗(dB)
+     */
+    static double calculateEnvironmentPathLoss(double distance_km, EnvironmentType envType);
+    
+    /**
+     * @brief 计算频率因子损耗
+     * @param frequency_MHz 频率(MHz)
+     * @param envType 环境类型
+     * @return 频率因子损耗(dB)
+     */
+    static double calculateFrequencyFactorLoss(double frequency_MHz, EnvironmentType envType);
+    
+    /**
+     * @brief 计算总环境损耗（包含环境路径损耗和频率因子损耗）
+     * @param distance_km 距离(km)
+     * @param frequency_MHz 频率(MHz)
+     * @param envType 环境类型
+     * @return 总环境损耗(dB)
+     */
+    static double calculateTotalEnvironmentLoss(double distance_km, double frequency_MHz, EnvironmentType envType);
 };
 
 #endif // ENVIRONMENT_LOSS_CONFIG_MANAGER_H
