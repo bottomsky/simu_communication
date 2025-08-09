@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.10)
+project(TestJammerParameterConfig)
+
+set(CMAKE_CXX_STANDARD 17)
+
+# 添加源文件
+add_executable(test_jammer_parameter_config 
+    test_jammer_parameter_config.cpp
+    source/src/CommunicationJammerParameterConfig.cpp
+    source/src/CommunicationJammerModel.cpp
+    source/src/CommunicationModel.cpp
+    source/src/SignalTransmissionModel.cpp
+    source/src/CommunicationDistanceModel.cpp
+    source/src/CommunicationReceiveModel.cpp
+    source/src/CommunicationReceiveParameterConfig.cpp
+    source/src/EnvironmentConfig.cpp
+)
+
+# 添加头文件目录
+target_include_directories(test_jammer_parameter_config PRIVATE .)

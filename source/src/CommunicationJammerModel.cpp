@@ -1,4 +1,5 @@
 #include "../header/CommunicationJammerModel.h"
+#include "../header/CommunicationJammerParameterConfig.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -27,25 +28,25 @@ CommunicationJammerModel::CommunicationJammerModel(
     }
 }
 
-// 参数校验方法实现
+// 参数校验方法实现 - 使用统一的参数配置类
 bool CommunicationJammerModel::isPowerValid(double power_dBm) const {
-    return power_dBm >= -50.0 && power_dBm <= 50.0;
+    return CommunicationJammerParameterConfig::isJammerPowerValid(power_dBm);
 }
 
 bool CommunicationJammerModel::isFrequencyValid(double freq_kHz) const {
-    return freq_kHz >= 1.0 && freq_kHz <= 30000000.0; // 1kHz到30GHz
+    return CommunicationJammerParameterConfig::isFrequencyValid(freq_kHz);
 }
 
 bool CommunicationJammerModel::isBandwidthValid(double bandwidth_kHz) const {
-    return bandwidth_kHz >= 0.1 && bandwidth_kHz <= 10000.0;
+    return CommunicationJammerParameterConfig::isBandwidthValid(bandwidth_kHz);
 }
 
 bool CommunicationJammerModel::isRangeValid(double range_km) const {
-    return range_km >= 0.1 && range_km <= 1000.0;
+    return CommunicationJammerParameterConfig::isRangeValid(range_km);
 }
 
 bool CommunicationJammerModel::isDutyCycleValid(double duty) const {
-    return duty >= 0.0 && duty <= 1.0;
+    return CommunicationJammerParameterConfig::isDutyCycleValid(duty);
 }
 
 // 干扰机参数设置方法实现
@@ -107,7 +108,7 @@ bool CommunicationJammerModel::setTargetBandwidth(double bandwidth_kHz) {
 }
 
 bool CommunicationJammerModel::setTargetPower(double power_dBm) {
-    if (power_dBm < -150.0 || power_dBm > 50.0) {
+    if (!CommunicationJammerParameterConfig::isTargetPowerValid(power_dBm)) {
         return false;
     }
     targetPower = power_dBm;
@@ -124,7 +125,7 @@ bool CommunicationJammerModel::setTargetDistance(double distance_km) {
 
 // 脉冲干扰参数设置实现
 bool CommunicationJammerModel::setPulseWidth(double width_ms) {
-    if (width_ms <= 0.0 || width_ms > 1000.0) {
+    if (!CommunicationJammerParameterConfig::isPulseWidthValid(width_ms)) {
         return false;
     }
     pulseWidth = width_ms;
@@ -132,7 +133,7 @@ bool CommunicationJammerModel::setPulseWidth(double width_ms) {
 }
 
 bool CommunicationJammerModel::setPulseRepetitionRate(double rate_Hz) {
-    if (rate_Hz <= 0.0 || rate_Hz > 100000.0) {
+    if (!CommunicationJammerParameterConfig::isPulseRepetitionRateValid(rate_Hz)) {
         return false;
     }
     pulseRepetitionRate = rate_Hz;
@@ -151,7 +152,7 @@ bool CommunicationJammerModel::setDutyCycle(double duty) {
 
 // 扫频干扰参数设置实现
 bool CommunicationJammerModel::setSweepRate(double rate_MHz_per_s) {
-    if (rate_MHz_per_s <= 0.0 || rate_MHz_per_s > 1000.0) {
+    if (!CommunicationJammerParameterConfig::isSweepRateValid(rate_MHz_per_s)) {
         return false;
     }
     sweepRate = rate_MHz_per_s;
@@ -159,7 +160,7 @@ bool CommunicationJammerModel::setSweepRate(double rate_MHz_per_s) {
 }
 
 bool CommunicationJammerModel::setSweepRange(double range_MHz) {
-    if (range_MHz <= 0.0 || range_MHz > 10000.0) {
+    if (!CommunicationJammerParameterConfig::isSweepRangeValid(range_MHz)) {
         return false;
     }
     sweepRange = range_MHz;
@@ -168,7 +169,7 @@ bool CommunicationJammerModel::setSweepRange(double range_MHz) {
 
 // 环境参数设置实现
 bool CommunicationJammerModel::setPropagationLoss(double loss_dB) {
-    if (loss_dB < 0.0 || loss_dB > 200.0) {
+    if (!CommunicationJammerParameterConfig::isPropagationLossValid(loss_dB)) {
         return false;
     }
     propagationLoss = loss_dB;
@@ -176,7 +177,7 @@ bool CommunicationJammerModel::setPropagationLoss(double loss_dB) {
 }
 
 bool CommunicationJammerModel::setAtmosphericLoss(double loss_dB) {
-    if (loss_dB < 0.0 || loss_dB > 50.0) {
+    if (!CommunicationJammerParameterConfig::isAtmosphericLossValid(loss_dB)) {
         return false;
     }
     atmosphericLoss = loss_dB;
@@ -333,8 +334,9 @@ double CommunicationJammerModel::calculateSpotJammerEffect() const {
     // 点频干扰效果类似窄带干扰但更精确
     return std::min(1.0, calculateNarrowbandEffect() * 1.2); // 点频干扰效果稍好，但不超过1.0
 }
-
-// 干扰覆盖范围计算实现
+/// @brief  计算频谱干扰效果
+/// @details 频谱干扰效果 = 干扰功率 - 目标信号功率 - 大气损耗
+/// @return 频谱干扰效果(dB)
 double CommunicationJammerModel::calculateJammerCoverage() const {
     // 简化的覆盖范围计算，基于干扰功率和最小有效干信比
     double min_js_ratio = 10.0; // 最小有效干信比10dB
@@ -352,18 +354,25 @@ bool CommunicationJammerModel::isTargetInJammerRange() const {
     return targetDistance <= jammerRange;
 }
 
-// 干扰功率需求计算实现
+/// @brief 计算所需干扰功率
+/// @details 所需干扰功率 = 目标信号功率 +  desired_js_ratio + 路径损耗 + 大气损耗
+/// @return 所需干扰功率(dBm)
 double CommunicationJammerModel::calculateRequiredJammerPower(double desired_js_ratio) const {
     double path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
     return targetPower + desired_js_ratio + path_loss + atmosphericLoss;
 }
 
+/// @brief 计算最优干扰频率
+/// @details 最优干扰频率通常是目标信号的中心频率
+/// @return 最优干扰频率(kHz)
 double CommunicationJammerModel::calculateOptimalJammerFrequency() const {
     // 最优干扰频率通常是目标信号的中心频率
     return targetFrequency;
 }
 
-// 多干扰机协同效果实现
+/// @brief 计算多干扰机协同效果
+/// @details 多干扰机协同效果 = 所有干扰机有效功率的线性组合
+/// @return 多干扰机协同效果(dB)
 double CommunicationJammerModel::calculateCombinedJammerEffect(
     const std::vector<CommunicationJammerModel>& jammers) const {
     
