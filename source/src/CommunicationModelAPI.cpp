@@ -99,6 +99,9 @@ void CommunicationModelAPI::updateModelsFromEnvironment() {
     invalidateCache();
 }
 
+/// @brief 计算总信号强度
+/// @details 总信号强度 = 发射功率 - 路径损耗 - 环境损耗 - 频率因子
+/// @return 总信号强度(dBm)
 double CommunicationModelAPI::calculateOverallSignalStrength() const {
     if (!signalModel_ || !distanceModel_) return -150.0;
     

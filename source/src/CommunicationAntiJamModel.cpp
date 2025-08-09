@@ -1,4 +1,5 @@
 #include "CommunicationAntiJamModel.h"
+#include "CommunicationAntiJamParameterConfig.h"
 #include <cmath>
 #include <algorithm>
 #include <sstream>
@@ -57,23 +58,23 @@ CommunicationAntiJamModel::CommunicationAntiJamModel(AntiJamTechnique technique,
 
 // 参数校验
 bool CommunicationAntiJamModel::validateParameters() const {
-    if (processingGain_ < 0.0 || processingGain_ > 50.0) return false;
-    if (spreadingFactor_ < 1.0 || spreadingFactor_ > 100000.0) return false;
-    if (hoppingRate_ < 1.0 || hoppingRate_ > 100000.0) return false;
-    if (codingGain_ < 0.0 || codingGain_ > 20.0) return false;
-    if (systemBandwidth_ < 0.1 || systemBandwidth_ > 10000.0) return false;
-    if (signalPower_ < -150.0 || signalPower_ > 50.0) return false;
-    if (noisePower_ < -150.0 || noisePower_ > 0.0) return false;
-    if (interferenceLevel_ < -150.0 || interferenceLevel_ > 50.0) return false;
-    if (hoppingChannels_ < 2 || hoppingChannels_ > 10000) return false;
-    if (channelSpacing_ < 0.001 || channelSpacing_ > 1000.0) return false;
-    if (dwellTime_ < 0.001 || dwellTime_ > 1000.0) return false;
-    if (chipRate_ < 1 || chipRate_ > 1000) return false;
-    if (sequenceLength_ < 7.0 || sequenceLength_ > 1000000.0) return false;
-    if (adaptationSpeed_ < 0.001 || adaptationSpeed_ > 1.0) return false;
-    if (convergenceThreshold_ < 0.0001 || convergenceThreshold_ > 0.1) return false;
-    if (environmentType_ < 0.0 || environmentType_ > 1.0) return false;
-    if (jammerDensity_ < 0.0 || jammerDensity_ > 1.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isProcessingGainValid(processingGain_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isSpreadingFactorValid(spreadingFactor_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isHoppingRateValid(hoppingRate_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isCodingGainValid(codingGain_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isSystemBandwidthValid(systemBandwidth_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isSignalPowerValid(signalPower_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isNoisePowerValid(noisePower_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isInterferenceLevelValid(interferenceLevel_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isHoppingChannelsValid(hoppingChannels_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isChannelSpacingValid(channelSpacing_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isDwellTimeValid(dwellTime_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isChipRateValid(chipRate_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isSequenceLengthValid(sequenceLength_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isAdaptationSpeedValid(adaptationSpeed_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isConvergenceThresholdValid(convergenceThreshold_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isEnvironmentTypeValid(environmentType_)) return false;
+    if (!CommunicationAntiJamParameterConfig::isJammerDensityValid(jammerDensity_)) return false;
     return true;
 }
 
@@ -89,103 +90,103 @@ bool CommunicationAntiJamModel::setAntiJamStrategy(AntiJamStrategy strategy) {
 }
 
 bool CommunicationAntiJamModel::setProcessingGain(double gain) {
-    if (gain < 0.0 || gain > 50.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isProcessingGainValid(gain)) return false;
     processingGain_ = gain;
     return true;
 }
 
 bool CommunicationAntiJamModel::setSpreadingFactor(double factor) {
-    if (factor < 1.0 || factor > 100000.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isSpreadingFactorValid(factor)) return false;
     spreadingFactor_ = factor;
     return true;
 }
 
 bool CommunicationAntiJamModel::setHoppingRate(double rate) {
-    if (rate < 1.0 || rate > 100000.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isHoppingRateValid(rate)) return false;
     hoppingRate_ = rate;
     return true;
 }
 
 bool CommunicationAntiJamModel::setCodingGain(double gain) {
-    if (gain < 0.0 || gain > 20.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isCodingGainValid(gain)) return false;
     codingGain_ = gain;
     return true;
 }
 
 bool CommunicationAntiJamModel::setSystemBandwidth(double bandwidth) {
-    if (bandwidth < 0.1 || bandwidth > 10000.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isSystemBandwidthValid(bandwidth)) return false;
     systemBandwidth_ = bandwidth;
     return true;
 }
 
 bool CommunicationAntiJamModel::setSignalPower(double power) {
-    if (power < -150.0 || power > 50.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isSignalPowerValid(power)) return false;
     signalPower_ = power;
     return true;
 }
 
 bool CommunicationAntiJamModel::setNoisePower(double power) {
-    if (power < -150.0 || power > 0.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isNoisePowerValid(power)) return false;
     noisePower_ = power;
     return true;
 }
 
 bool CommunicationAntiJamModel::setInterferenceLevel(double level) {
-    if (level < -150.0 || level > 50.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isInterferenceLevelValid(level)) return false;
     interferenceLevel_ = level;
     return true;
 }
 
 bool CommunicationAntiJamModel::setHoppingChannels(int channels) {
-    if (channels < 2 || channels > 10000) return false;
+    if (!CommunicationAntiJamParameterConfig::isHoppingChannelsValid(channels)) return false;
     hoppingChannels_ = channels;
     return true;
 }
 
 bool CommunicationAntiJamModel::setChannelSpacing(double spacing) {
-    if (spacing < 0.001 || spacing > 1000.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isChannelSpacingValid(spacing)) return false;
     channelSpacing_ = spacing;
     return true;
 }
 
 bool CommunicationAntiJamModel::setDwellTime(double time) {
-    if (time < 0.001 || time > 1000.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isDwellTimeValid(time)) return false;
     dwellTime_ = time;
     return true;
 }
 
 bool CommunicationAntiJamModel::setChipRate(int rate) {
-    if (rate < 1 || rate > 1000) return false;
+    if (!CommunicationAntiJamParameterConfig::isChipRateValid(rate)) return false;
     chipRate_ = rate;
     return true;
 }
 
 bool CommunicationAntiJamModel::setSequenceLength(double length) {
-    if (length < 7.0 || length > 1000000.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isSequenceLengthValid(length)) return false;
     sequenceLength_ = length;
     return true;
 }
 
 bool CommunicationAntiJamModel::setAdaptationSpeed(double speed) {
-    if (speed < 0.001 || speed > 1.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isAdaptationSpeedValid(speed)) return false;
     adaptationSpeed_ = speed;
     return true;
 }
 
 bool CommunicationAntiJamModel::setConvergenceThreshold(double threshold) {
-    if (threshold < 0.0001 || threshold > 0.1) return false;
+    if (!CommunicationAntiJamParameterConfig::isConvergenceThresholdValid(threshold)) return false;
     convergenceThreshold_ = threshold;
     return true;
 }
 
 bool CommunicationAntiJamModel::setEnvironmentType(double type) {
-    if (type < 0.0 || type > 1.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isEnvironmentTypeValid(type)) return false;
     environmentType_ = type;
     return true;
 }
 
 bool CommunicationAntiJamModel::setJammerDensity(double density) {
-    if (density < 0.0 || density > 1.0) return false;
+    if (!CommunicationAntiJamParameterConfig::isJammerDensityValid(density)) return false;
     jammerDensity_ = density;
     return true;
 }
@@ -388,7 +389,9 @@ double CommunicationAntiJamModel::calculateInterceptionResistance() const {
     return std::max(0.0, std::min(1.0, resistance));
 }
 
-// 抗干扰效果评估
+/// @brief 评估抗干扰效果
+/// @details 基于抗干扰能力、抗截获能力和吞吐量维护评估抗干扰效果
+/// @return 抗干扰效果等级
 AntiJamEffectLevel CommunicationAntiJamModel::evaluateAntiJamEffect() const {
     double effectiveness = calculateProtectionEffectiveness();
     
@@ -399,6 +402,9 @@ AntiJamEffectLevel CommunicationAntiJamModel::evaluateAntiJamEffect() const {
     else return AntiJamEffectLevel::EXCELLENT_PROTECTION;
 }
 
+/// @brief 计算抗干扰效果
+/// @details 抗干扰效果 = 抗干扰能力 + 抗截获能力 + 吞吐量维护
+/// @return 抗干扰效果(0-1)
 double CommunicationAntiJamModel::calculateProtectionEffectiveness() const {
     if (!validateParameters()) return 0.0;
     
@@ -412,6 +418,9 @@ double CommunicationAntiJamModel::calculateProtectionEffectiveness() const {
     return std::max(0.0, std::min(1.0, effectiveness));
 }
 
+/// @brief  计算抗干扰效果
+/// @details 自适应效率 = 自适应速度 * (1 - 收敛阈值)
+/// @return 自适应效率(0-1)
 double CommunicationAntiJamModel::calculateAdaptationEfficiency() const {
     if (!validateParameters()) return 0.0;
     
@@ -426,6 +435,9 @@ double CommunicationAntiJamModel::calculateAdaptationEfficiency() const {
     return std::max(0.0, std::min(1.0, efficiency));
 }
 
+/// @brief 计算资源利用率
+/// @details 资源利用率 = (带宽利用率 + 功率利用率 + 处理利用率) / 3
+/// @return 资源利用率(0-1)
 double CommunicationAntiJamModel::calculateResourceUtilization() const {
     if (!validateParameters()) return 0.0;
     
@@ -446,6 +458,9 @@ double CommunicationAntiJamModel::calculateFrequencyHoppingEffectiveness() const
     return std::max(0.0, std::min(1.0, effectiveness));
 }
 
+/// @brief 计算扩频频谱效果
+/// @details 扩频频谱效果 = 扩频增益 / 40
+/// @return 扩频频谱效果(0-1)
 double CommunicationAntiJamModel::calculateSpreadSpectrumEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::DIRECT_SEQUENCE) return 0.0;
     
@@ -454,7 +469,9 @@ double CommunicationAntiJamModel::calculateSpreadSpectrumEffectiveness() const {
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
-
+/// @brief 计算自适应滤波效果
+/// @details 自适应滤波效果 = 自适应滤波增益 / 15
+/// @return 频谱 Direc Sequence 效果(0-1)
 double CommunicationAntiJamModel::calculateAdaptiveFilteringEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::ADAPTIVE_FILTERING) return 0.0;
     
@@ -463,7 +480,9 @@ double CommunicationAntiJamModel::calculateAdaptiveFilteringEffectiveness() cons
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
-
+/// @brief 计算波束形成效果
+/// @details 波束形成效果 = 波束形成增益 / 20
+/// @return 波束形成效果(0-1)
 double CommunicationAntiJamModel::calculateBeamFormingEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::BEAM_FORMING) return 0.0;
     
@@ -473,6 +492,9 @@ double CommunicationAntiJamModel::calculateBeamFormingEffectiveness() const {
     return std::max(0.0, std::min(1.0, effectiveness));
 }
 
+/// @brief 计算分集效果
+/// @details 分集效果 = 分集增益 / 10
+/// @return 分集效果(0-1)
 double CommunicationAntiJamModel::calculateDiversityEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::DIVERSITY_RECEPTION) return 0.0;
     
@@ -481,7 +503,9 @@ double CommunicationAntiJamModel::calculateDiversityEffectiveness() const {
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
-
+/// @brief 计算纠错效果
+/// @details 纠错效果 = 纠错增益 / 20
+/// @return 纠错效果(0-1)
 double CommunicationAntiJamModel::calculateErrorCorrectionEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::ERROR_CORRECTION) return 0.0;
     
