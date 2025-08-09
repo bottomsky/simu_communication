@@ -20,13 +20,23 @@ enum class CommunicationQuality {
 
 namespace CommunicationModelUtils {
 
+    // ==================== 单位转换函数 ====================
+    
+    double frequencyToWavelength(double frequency) {
+        return 300.0 / frequency; // MHz to meters
+    }
+    
+    double wavelengthToFrequency(double wavelength) {
+        return 300.0 / wavelength; // meters to MHz
+    }
+
     // ==================== 快速计算函数 ====================
     
     double quickCalculatePower(double frequency, double range, EnvironmentType env) {
         // 从配置获取环境特性
         const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);
         
-        double wavelength = 300.0 / frequency; // MHz to meters
+        double wavelength = frequencyToWavelength(frequency);
         double freeSpaceRef = 20.0 * std::log10(4.0 * M_PI / wavelength);
         double pathLoss = freeSpaceRef + 10.0 * config.pathLossExponent * std::log10(range * 1000.0);
         
@@ -46,7 +56,7 @@ namespace CommunicationModelUtils {
         else return CommunicationQuality::FAILED;
     }
     
-    // ==================== 单位转换函数 ====================
+    // ==================== 其他单位转换函数 ====================
     
     double dBmToWatts(double dBm) {
         return std::pow(10.0, (dBm - 30.0) / 10.0);
@@ -62,14 +72,6 @@ namespace CommunicationModelUtils {
     
     double linearTodB(double linear) {
         return 10.0 * std::log10(linear);
-    }
-    
-    double frequencyToWavelength(double frequency) {
-        return 300.0 / frequency; // MHz to meters
-    }
-    
-    double wavelengthToFrequency(double wavelength) {
-        return 300.0 / wavelength; // meters to MHz
     }
     
     // ==================== 环境建模辅助函数 ====================

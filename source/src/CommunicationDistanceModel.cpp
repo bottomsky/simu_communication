@@ -247,7 +247,7 @@ double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz) con
 double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz, double power_dBm, EnvironmentType env) {
     // 创建临时模型实例，使用传入的参数
     CommunicationDistanceModel tempModel(
-        100.0,      // 最大视距100km（足够大，不限制计算）
+        50.0,       // 最大视距50km（在有效范围内，足够大不限制计算）
         env,        // 环境类型
         1.0,        // 默认衰减系数（会被环境类型覆盖）
         -100.0,     // 接收灵敏度-100dBm
