@@ -1,0 +1,65 @@
+# 构建目录 - 整个构建目录及其内容
+build/
+
+# 编译生成的目标文件
+*.obj
+*.o
+
+# 可执行文件和库文件
+*.exe
+*.dll
+*.so
+
+# 静态库文件
+*.lib
+*.a
+
+# 调试信息文件
+*.pdb
+
+# IDE配置目录
+.vs/
+.vscode/
+
+# CMake生成文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# 其他常见的构建和临时文件
+*.tmp
+*.temp
+*.log
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.vcxproj.user
+
+# 系统生成的文件
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+*~
+
+# 编译器和链接器生成的文件
+*.ilk
+*.exp
+*.map
+*.idb
+*.pch
+
+# 测试结果文件
+TestResults/
+*.trx
+*.coverage
+
+# 包管理器目录
+packages/
+node_modules/
+
+# 备份文件
+*.bak
+*.backup
