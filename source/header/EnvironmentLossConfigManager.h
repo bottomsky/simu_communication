@@ -91,6 +91,14 @@ public:
     static bool validateConfig(const EnvironmentLossConfig& config);
     
     /**
+     * @brief 验证衰减系数是否符合指定环境类型的范围
+     * @param attenuation 衰减系数
+     * @param envType 环境类型
+     * @return 如果衰减系数有效返回true，否则返回false
+     */
+    static bool isAttenuationValid(double attenuation, EnvironmentType envType);
+    
+    /**
      * @brief 获取环境类型的字符串描述
      * @param envType 环境类型
      * @return 环境类型的字符串描述

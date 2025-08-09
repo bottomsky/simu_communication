@@ -90,7 +90,9 @@ size_t EnvironmentLossConfigManager::getConfigCount() {
     }
     return configs_.size();
 }
-
+/// @brief 验证环境损耗配置是否有效
+/// @param config 环境损耗配置
+/// @return 如果配置有效返回true，否则返回false
 bool EnvironmentLossConfigManager::validateConfig(const EnvironmentLossConfig& config) {
     // 验证路径损耗指数 (通常在1.5到6之间)
     if (config.pathLossExponent < 1.5 || config.pathLossExponent > 6.0) {
@@ -114,7 +116,26 @@ bool EnvironmentLossConfigManager::validateConfig(const EnvironmentLossConfig& c
     
     return true;
 }
+/// @brief 验证衰减系数是否符合指定环境类型的范围
+/// @param attenuation 衰减系数
+/// @param envType 环境类型
+/// @return 如果衰减系数有效返回true，否则返回false
+bool EnvironmentLossConfigManager::isAttenuationValid(double attenuation, EnvironmentType envType) {
+    // 获取环境配置
+    const EnvironmentLossConfig& config = getConfig(envType);
+    
+    // 根据环境损耗计算期望的衰减系数
+    double expectedAttenuation = 1.0 + (config.environmentLoss / 10.0);
+    
+    // 允许±0.5的偏差范围
+    double tolerance = 0.5;
+    return attenuation >= (expectedAttenuation - tolerance) && 
+           attenuation <= (expectedAttenuation + tolerance);
+}
 
+/// @brief  测试环境损耗
+/// @param envType 环境类型
+/// @return 环境类型名称
 std::string EnvironmentLossConfigManager::getEnvironmentTypeName(EnvironmentType envType) {
     switch (envType) {
         case EnvironmentType::OPEN_FIELD:

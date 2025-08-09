@@ -14,8 +14,7 @@ private:
     double linkMargin;          // 链路余量(dB)
     double transmitPower;       // 发射功率(dBm)
 
-    // 校验衰减系数是否符合当前环境类型的范围
-    bool isAttenuationValid(double attenuation, EnvironmentType env) const;
+
 
     // 功率参数范围校验
     bool isPowerValid(double power_dBm) const;

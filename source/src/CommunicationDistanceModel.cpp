@@ -2,19 +2,7 @@
 #include <sstream>
 #include <cmath>
 
-// 环境衰减系数范围校验实现
-bool CommunicationDistanceModel::isAttenuationValid(double attenuation, EnvironmentType env) const {
-    // 使用 EnvironmentLossConfigManager 获取环境配置
-    const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);
-    
-    // 根据环境损耗计算期望的衰减系数
-    double expectedAttenuation = 1.0 + (config.environmentLoss / 10.0);
-    
-    // 允许±0.5的偏差范围
-    double tolerance = 0.5;
-    return attenuation >= (expectedAttenuation - tolerance) && 
-           attenuation <= (expectedAttenuation + tolerance);
-}
+
 
 // 功率参数范围校验实现
 bool CommunicationDistanceModel::isPowerValid(double power_dBm) const {
@@ -35,7 +23,7 @@ CommunicationDistanceModel::CommunicationDistanceModel(
         throw std::invalid_argument("最大视距需在0.5-50km范围内");
     }
     // 校验衰减系数
-    if (!isAttenuationValid(attenuation, env)) {
+    if (!EnvironmentLossConfigManager::isAttenuationValid(attenuation, env)) {
         throw std::invalid_argument("衰减系数不符合当前环境类型范围");
     }
     // 校验接收灵敏度
@@ -82,7 +70,7 @@ void CommunicationDistanceModel::setEnvironmentType(EnvironmentType env) {
 
 // 设置环境衰减系数实现
 bool CommunicationDistanceModel::setEnvAttenuation(double attenuation) {
-    if (isAttenuationValid(attenuation, envType)) {
+    if (EnvironmentLossConfigManager::isAttenuationValid(attenuation, envType)) {
         envAttenuation = attenuation;
         return true;
     }
