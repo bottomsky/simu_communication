@@ -29,9 +29,6 @@ private:
     double signalBandwidth;      // 信号带宽(kHz)
     double transmitPower;        // 发射功率(W)
 
-    // 频段对应的频率范围校验
-    bool isFrequencyInBand(double freqKHz, FrequencyBand band) const;
-
 public:
     // 构造函数(默认参数为典型值)
     SignalTransmissionModel(
@@ -58,6 +55,9 @@ public:
 
     // 打印当前参数配置
     std::string getParameterInfo() const;
+
+    // 频段对应的频率范围校验
+    bool isFrequencyInBand(double freqKHz, FrequencyBand band) const;
 };
 
 #endif // SIGNAL_TRANSMISSION_MODEL_H

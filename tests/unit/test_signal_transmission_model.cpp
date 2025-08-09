@@ -122,8 +122,8 @@ TEST_F(SignalTransmissionModelTest, ParameterSettersAndGetters) {
     EXPECT_DOUBLE_EQ(model.getCenterFrequency(), 150000.0); // 应该保持原值
 
     // 测试设置调制方式
-    model.setModulationType(ModulationType::PSK);
-    EXPECT_EQ(model.getModulationType(), ModulationType::PSK);
+    model.setModulationType(ModulationType::BPSK);
+    EXPECT_EQ(model.getModulationType(), ModulationType::BPSK);
 
     // 测试设置有效带宽
     EXPECT_TRUE(model.setSignalBandwidth(50.0));

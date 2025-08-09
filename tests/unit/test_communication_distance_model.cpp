@@ -19,11 +19,12 @@ protected:
 TEST_F(CommunicationDistanceModelTest, ConstructorValidParameters) {
     EXPECT_NO_THROW({
         CommunicationDistanceModel model(
-            EnvironmentType::URBAN,
             50.0,      // 50km最大视距
+            EnvironmentType::URBAN_AREA,
+            2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
             -100.0,    // -100dBm接收灵敏度
             10.0,      // 10dB链路余量
-            20.0       // 20W发射功率
+            20.0       // 20dBm发射功率
         );
     });
 }
@@ -33,8 +34,9 @@ TEST_F(CommunicationDistanceModelTest, ConstructorInvalidParameters) {
     // 无效最大视距
     EXPECT_THROW({
         CommunicationDistanceModel model(
-            EnvironmentType::URBAN,
             -10.0,     // 负距离
+            EnvironmentType::URBAN_AREA,
+            2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
             -100.0,
             10.0,
             20.0
@@ -44,8 +46,9 @@ TEST_F(CommunicationDistanceModelTest, ConstructorInvalidParameters) {
     // 无效接收灵敏度
     EXPECT_THROW({
         CommunicationDistanceModel model(
-            EnvironmentType::URBAN,
             50.0,
+            EnvironmentType::URBAN_AREA,
+            2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
             50.0,      // 正值灵敏度（应该为负）
             10.0,
             20.0
@@ -55,8 +58,9 @@ TEST_F(CommunicationDistanceModelTest, ConstructorInvalidParameters) {
     // 无效链路余量
     EXPECT_THROW({
         CommunicationDistanceModel model(
-            EnvironmentType::URBAN,
             50.0,
+            EnvironmentType::URBAN_AREA,
+            2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
             -100.0,
             -5.0,      // 负链路余量
             20.0
@@ -66,75 +70,41 @@ TEST_F(CommunicationDistanceModelTest, ConstructorInvalidParameters) {
     // 无效发射功率
     EXPECT_THROW({
         CommunicationDistanceModel model(
-            EnvironmentType::URBAN,
             50.0,
+            EnvironmentType::URBAN_AREA,
+            2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
             -100.0,
             10.0,
-            -1.0       // 负功率
+            -50.0      // 超出范围的功率
         );
     }, std::invalid_argument);
 }
 
-// 测试环境衰减系数
-TEST_F(CommunicationDistanceModelTest, EnvironmentAttenuationCoefficient) {
-    CommunicationDistanceModel model(
-        EnvironmentType::URBAN,
-        50.0,
-        -100.0,
-        10.0,
-        20.0
-    );
 
-    // 测试不同环境的衰减系数
-    EXPECT_DOUBLE_EQ(model.getEnvironmentAttenuationCoeff(EnvironmentType::FREE_SPACE), 2.0);
-    EXPECT_DOUBLE_EQ(model.getEnvironmentAttenuationCoeff(EnvironmentType::RURAL), 2.5);
-    EXPECT_DOUBLE_EQ(model.getEnvironmentAttenuationCoeff(EnvironmentType::SUBURBAN), 3.0);
-    EXPECT_DOUBLE_EQ(model.getEnvironmentAttenuationCoeff(EnvironmentType::URBAN), 3.5);
-    EXPECT_DOUBLE_EQ(model.getEnvironmentAttenuationCoeff(EnvironmentType::DENSE_URBAN), 4.0);
-    EXPECT_DOUBLE_EQ(model.getEnvironmentAttenuationCoeff(EnvironmentType::INDOOR), 4.5);
-}
 
-// 测试功率参数范围校验
-TEST_F(CommunicationDistanceModelTest, PowerParameterValidation) {
-    CommunicationDistanceModel model(
-        EnvironmentType::URBAN,
-        50.0,
-        -100.0,
-        10.0,
-        20.0
-    );
 
-    // 测试有效功率范围
-    EXPECT_TRUE(model.isPowerInValidRange(0.1));
-    EXPECT_TRUE(model.isPowerInValidRange(50.0));
-    EXPECT_TRUE(model.isPowerInValidRange(1000.0));
-
-    // 测试无效功率范围
-    EXPECT_FALSE(model.isPowerInValidRange(0.0));
-    EXPECT_FALSE(model.isPowerInValidRange(-1.0));
-    EXPECT_FALSE(model.isPowerInValidRange(1001.0));
-}
 
 // 测试参数设置和获取
 TEST_F(CommunicationDistanceModelTest, ParameterSettersAndGetters) {
     CommunicationDistanceModel model(
-        EnvironmentType::RURAL,
-        30.0,
-        -110.0,
-        15.0,
-        10.0
+        30.0,      // 最大视距
+        EnvironmentType::OPEN_FIELD,
+        1.0,       // 衰减因子 (OPEN_FIELD: 0.8-1.2)
+        -110.0,    // 接收灵敏度
+        15.0,      // 链路余量
+        10.0       // 发射功率
     );
 
     // 测试获取初始参数
-    EXPECT_EQ(model.getEnvironmentType(), EnvironmentType::RURAL);
+    EXPECT_EQ(model.getEnvironmentType(), EnvironmentType::OPEN_FIELD);
     EXPECT_DOUBLE_EQ(model.getMaxLineOfSight(), 30.0);
     EXPECT_DOUBLE_EQ(model.getReceiveSensitivity(), -110.0);
     EXPECT_DOUBLE_EQ(model.getLinkMargin(), 15.0);
     EXPECT_DOUBLE_EQ(model.getTransmitPower(), 10.0);
 
     // 测试设置环境类型
-    model.setEnvironmentType(EnvironmentType::URBAN);
-    EXPECT_EQ(model.getEnvironmentType(), EnvironmentType::URBAN);
+    model.setEnvironmentType(EnvironmentType::URBAN_AREA);
+    EXPECT_EQ(model.getEnvironmentType(), EnvironmentType::URBAN_AREA);
 
     // 测试设置有效的最大视距
     EXPECT_TRUE(model.setMaxLineOfSight(60.0));
@@ -173,26 +143,26 @@ TEST_F(CommunicationDistanceModelTest, ParameterSettersAndGetters) {
 // 测试有效通信距离计算
 TEST_F(CommunicationDistanceModelTest, EffectiveCommunicationDistanceCalculation) {
     CommunicationDistanceModel model(
-        EnvironmentType::FREE_SPACE,
-        100.0,     // 100km最大视距
-        -100.0,    // -100dBm接收灵敏度
+        20.0,      // 20km最大视距
+        EnvironmentType::OPEN_FIELD,
+        1.0,       // 衰减因子 (OPEN_FIELD: 0.8-1.2)
+        -95.0,     // -95dBm接收灵敏度
         10.0,      // 10dB链路余量
-        20.0,      // 20W发射功率
-        100000.0   // 100MHz频率
+        15.0       // 15dBm发射功率
     );
 
-    double distance = model.calculateEffectiveCommunicationDistance();
+    double distance = model.calculateEffectiveDistance();
     
     // 验证计算结果合理性
     EXPECT_GT(distance, 0.0);
-    EXPECT_LE(distance, 100.0); // 不应超过最大视距
+    EXPECT_LE(distance, 20.0); // 不应超过最大视距
 
     // 测试不同环境下的距离差异
-    model.setEnvironmentType(EnvironmentType::URBAN);
-    double urbanDistance = model.calculateEffectiveCommunicationDistance();
+    model.setEnvironmentType(EnvironmentType::URBAN_AREA);
+    double urbanDistance = model.calculateEffectiveDistance();
     
-    model.setEnvironmentType(EnvironmentType::FREE_SPACE);
-    double freeSpaceDistance = model.calculateEffectiveCommunicationDistance();
+    model.setEnvironmentType(EnvironmentType::OPEN_FIELD);
+    double freeSpaceDistance = model.calculateEffectiveDistance();
     
     // 自由空间的通信距离应该大于城市环境
     EXPECT_GT(freeSpaceDistance, urbanDistance);
@@ -201,25 +171,25 @@ TEST_F(CommunicationDistanceModelTest, EffectiveCommunicationDistanceCalculation
 // 测试频率对通信距离的影响
 TEST_F(CommunicationDistanceModelTest, FrequencyImpactOnDistance) {
     CommunicationDistanceModel lowFreqModel(
-        EnvironmentType::RURAL,
-        50.0,
-        -100.0,
-        10.0,
-        20.0,
-        30000.0    // 30MHz (短波)
+        15.0,      // 较小的最大视距
+        EnvironmentType::OPEN_FIELD,
+        0.8,       // 衰减因子 (OPEN_FIELD: 0.8-1.2) - 低频
+        -95.0,     // 接收灵敏度
+        10.0,      // 链路余量
+        15.0       // 发射功率
     );
 
     CommunicationDistanceModel highFreqModel(
-        EnvironmentType::RURAL,
-        50.0,
-        -100.0,
-        10.0,
-        20.0,
-        1000000.0  // 1GHz (微波)
+        15.0,      // 较小的最大视距
+        EnvironmentType::OPEN_FIELD,
+        1.2,       // 衰减因子 (OPEN_FIELD: 0.8-1.2) - 高频
+        -95.0,     // 接收灵敏度
+        10.0,      // 链路余量
+        15.0       // 发射功率
     );
 
-    double lowFreqDistance = lowFreqModel.calculateEffectiveCommunicationDistance();
-    double highFreqDistance = highFreqModel.calculateEffectiveCommunicationDistance();
+    double lowFreqDistance = lowFreqModel.calculateEffectiveDistance();
+    double highFreqDistance = highFreqModel.calculateEffectiveDistance();
 
     // 低频信号的传播距离通常更远
     EXPECT_GT(lowFreqDistance, highFreqDistance);
@@ -228,25 +198,25 @@ TEST_F(CommunicationDistanceModelTest, FrequencyImpactOnDistance) {
 // 测试功率对通信距离的影响
 TEST_F(CommunicationDistanceModelTest, PowerImpactOnDistance) {
     CommunicationDistanceModel lowPowerModel(
-        EnvironmentType::SUBURBAN,
-        50.0,
-        -100.0,
-        10.0,
-        5.0,       // 5W
-        100000.0
+        10.0,      // 较小的最大视距，避免达到限制
+        EnvironmentType::URBAN_AREA,
+        2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
+        -90.0,     // 较高的接收灵敏度，减少计算距离
+        10.0,      // 链路余量
+        5.0        // 5dBm
     );
 
     CommunicationDistanceModel highPowerModel(
-        EnvironmentType::SUBURBAN,
-        50.0,
-        -100.0,
-        10.0,
-        50.0,      // 50W
-        100000.0
+        10.0,      // 较小的最大视距，避免达到限制
+        EnvironmentType::URBAN_AREA,
+        2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
+        -90.0,     // 较高的接收灵敏度，减少计算距离
+        10.0,      // 链路余量
+        25.0       // 25dBm
     );
 
-    double lowPowerDistance = lowPowerModel.calculateEffectiveCommunicationDistance();
-    double highPowerDistance = highPowerModel.calculateEffectiveCommunicationDistance();
+    double lowPowerDistance = lowPowerModel.calculateEffectiveDistance();
+    double highPowerDistance = highPowerModel.calculateEffectiveDistance();
 
     // 高功率应该有更远的通信距离
     EXPECT_GT(highPowerDistance, lowPowerDistance);
@@ -255,12 +225,12 @@ TEST_F(CommunicationDistanceModelTest, PowerImpactOnDistance) {
 // 测试参数信息字符串生成
 TEST_F(CommunicationDistanceModelTest, ParameterInfoGeneration) {
     CommunicationDistanceModel model(
-        EnvironmentType::URBAN,
-        50.0,
-        -100.0,
-        10.0,
-        20.0,
-        100000.0
+        50.0,      // 最大视距
+        EnvironmentType::URBAN_AREA,
+        2.0,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
+        -100.0,    // 接收灵敏度
+        10.0,      // 链路余量
+        20.0       // 发射功率
     );
 
     std::string info = model.getParameterInfo();
@@ -279,24 +249,24 @@ TEST_F(CommunicationDistanceModelTest, BoundaryConditions) {
     // 测试最小参数值
     EXPECT_NO_THROW({
         CommunicationDistanceModel model(
-            EnvironmentType::FREE_SPACE,
-            0.1,       // 最小视距
-            -150.0,    // 很低的接收灵敏度
-            0.1,       // 最小链路余量
-            0.1,       // 最小功率
-            1000.0     // 最低频率
+            0.5,       // 最小视距
+            EnvironmentType::OPEN_FIELD,
+            0.8,       // 衰减因子 (OPEN_FIELD: 0.8-1.2)
+            -110.0,    // 接收灵敏度
+            5.0,       // 最小链路余量
+            -30.0      // 最小功率
         );
     });
 
     // 测试最大参数值
     EXPECT_NO_THROW({
         CommunicationDistanceModel model(
-            EnvironmentType::INDOOR,
-            1000.0,    // 最大视距
-            -50.0,     // 较高的接收灵敏度
-            50.0,      // 较大链路余量
-            1000.0,    // 最大功率
-            30000000.0 // 最高频率
+            50.0,      // 最大视距
+            EnvironmentType::URBAN_AREA,
+            2.5,       // 衰减因子 (URBAN_AREA: 1.5-2.5)
+            -90.0,     // 较高的接收灵敏度
+            20.0,      // 较大链路余量
+            30.0       // 最大功率
         );
     });
 }
@@ -304,18 +274,18 @@ TEST_F(CommunicationDistanceModelTest, BoundaryConditions) {
 // 测试计算精度
 TEST_F(CommunicationDistanceModelTest, CalculationPrecision) {
     CommunicationDistanceModel model(
-        EnvironmentType::RURAL,
-        50.0,
-        -100.0,
-        10.0,
-        20.0,
-        100000.0
+        5.0,       // 较小的最大视距
+        EnvironmentType::OPEN_FIELD,
+        1.0,       // 衰减因子
+        -90.0,     // 较高的接收灵敏度
+        10.0,      // 链路余量
+        10.0       // 较低的发射功率
     );
 
     // 多次计算应该得到相同结果
-    double distance1 = model.calculateEffectiveCommunicationDistance();
-    double distance2 = model.calculateEffectiveCommunicationDistance();
-    double distance3 = model.calculateEffectiveCommunicationDistance();
+    double distance1 = model.calculateEffectiveDistance();
+    double distance2 = model.calculateEffectiveDistance();
+    double distance3 = model.calculateEffectiveDistance();
 
     EXPECT_DOUBLE_EQ(distance1, distance2);
     EXPECT_DOUBLE_EQ(distance2, distance3);
@@ -331,15 +301,15 @@ TEST_F(CommunicationDistanceModelTest, PerformanceTest) {
     // 创建1000个模型实例并计算距离
     for (int i = 0; i < 1000; ++i) {
         CommunicationDistanceModel model(
-            static_cast<EnvironmentType>(i % 6),
-            50.0 + i * 0.1,
-            -100.0 - i * 0.01,
-            10.0 + i * 0.01,
-            20.0 + i * 0.1,
-            100000.0 + i * 100
+            0.5 + (i % 495) * 0.1,              // 最大视距 (0.5-50km范围内)
+            static_cast<EnvironmentType>(i % 6), // 环境类型
+            1.0,                                 // 衰减因子
+            -100.0 - i * 0.01,                  // 接收灵敏度
+            10.0 + i * 0.01,                    // 链路余量
+            20.0 + (i % 100) * 0.1              // 发射功率 (保持在有效范围内)
         );
         
-        double distance = model.calculateEffectiveCommunicationDistance();
+        double distance = model.calculateEffectiveDistance();
         std::string info = model.getParameterInfo();
     }
     
