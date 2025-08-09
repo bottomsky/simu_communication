@@ -61,6 +61,11 @@ void CommunicationModelAPI::invalidateCache() {
     resultsValid_ = false;
 }
 
+/// @brief 更新所有模型参数
+/// @details 根据当前环境参数更新信号传输模型、通信距离模型、接收模型、干扰模型和抗干扰模型
+/// @return 更新是否成功
+/// @retval true 更新成功
+/// @retval false 更新失败
 void CommunicationModelAPI::updateModelsFromEnvironment() {
     if (!signalModel_ || !distanceModel_ || !receiveModel_ || 
         !jammerModel_ || !antiJamModel_) return;
@@ -138,6 +143,9 @@ double CommunicationModelAPI::calculateOverallSNR() const {
     return snr;
 }
 
+/// @brief 计算误码率
+/// @details 误码率 = 0.5 * erfc(sqrt(10^(信噪比/10)))
+/// @return 误码率
 double CommunicationModelAPI::calculateOverallBER() const {
     double snr = calculateOverallSNR();
     
@@ -148,6 +156,9 @@ double CommunicationModelAPI::calculateOverallBER() const {
     return std::max(1e-12, std::min(0.5, ber));
 }
 
+/// @brief 计算吞吐量
+/// @details 吞吐量 = 带宽 * log2(1 + 10^(信噪比/10)) * (1 - 误码率)
+/// @return 吞吐量 (bps)
 double CommunicationModelAPI::calculateThroughput() const {
     double snr = calculateOverallSNR();
     double ber = calculateOverallBER();
@@ -162,6 +173,9 @@ double CommunicationModelAPI::calculateThroughput() const {
     return theoreticalCapacity * efficiency;
 }
 
+/// @brief 计算延迟
+/// @details 延迟 = 距离 / 光速 + 处理延迟 + 重传延迟
+/// @return 延迟 (ms)
 double CommunicationModelAPI::calculateLatency() const {
     double baseLatency = environment_.distance / 300.0; // 光速传播延迟 (ms)
     
@@ -175,6 +189,9 @@ double CommunicationModelAPI::calculateLatency() const {
     return baseLatency + processingDelay + retransmissionDelay;
 }
 
+/// @brief 计算丢包率
+/// @details 丢包率 = 1 - (1 - BER)^(数据包长度 * 8)
+/// @return 丢包率
 double CommunicationModelAPI::calculatePacketLossRate() const {
     double ber = calculateOverallBER();
     
@@ -186,7 +203,7 @@ double CommunicationModelAPI::calculatePacketLossRate() const {
     
     return std::max(0.0, std::min(1.0, packetErrorRate));
 }
-
+/// @return 通信质量
 CommunicationQuality CommunicationModelAPI::assessCommunicationQuality() const {
     double snr = calculateOverallSNR();
     double ber = calculateOverallBER();
@@ -217,7 +234,10 @@ CommunicationQuality CommunicationModelAPI::assessCommunicationQuality() const {
     else return CommunicationQuality::FAILED;
 }
 
-// 场景设置
+/// @brief 设置通信场景
+/// @details 根据场景调整模型参数
+/// @param scenario 通信场景
+/// @return 设置是否成功
 bool CommunicationModelAPI::setScenario(CommunicationScenario scenario) {
     currentScenario_ = scenario;
     
@@ -582,23 +602,60 @@ std::string CommunicationModelAPI::getModelInfo() const {
 
 // 便利函数实现
 namespace CommunicationModelUtils {
+
+    /// @brief 快速计算距离
+    /// @param frequency 频率 (MHz)
+    /// @param power 功率 (dBm)
+    /// @param env 环境类型
+    /// @return 距离 (km)
     double quickCalculateRange(double frequency, double power, EnvironmentType env) {
         // 从配置获取环境特性
         const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);
         
-        double wavelength = 300.0 / frequency; // MHz to meters
-        double freeSpaceRef = 20.0 * std::log10(4.0 * M_PI / wavelength);
+        // 假设接收条件：-100dBm噪声底，10dB SNR余量
+        double receiveSensitivity = -100.0;
+        double snrMargin = 10.0;
+        double maxPathLoss = power - receiveSensitivity - snrMargin;
         
-        // 考虑环境损耗和频率因子
-        double environmentLoss = config.environmentLoss;
-        double frequencyLoss = config.frequencyFactor * std::log10(frequency / 1000.0) * 2.0;
-        double totalLoss = environmentLoss + frequencyLoss;
+        // 使用EnvironmentLossConfigManager计算总环境损耗（不包含距离相关的自由空间损耗）
+        // 这里我们需要估算一个初始距离来计算环境损耗，然后迭代求解
+        double estimatedDistance = 1.0; // 初始估计距离 1km
         
-        double maxPathLoss = power - (-100.0) - 10.0 - totalLoss; // 假设-100dBm噪声，10dB SNR
+        // 迭代求解距离（简化的牛顿法）
+        for (int i = 0; i < 10; i++) {
+            // 计算当前距离下的总路径损耗
+            double freeSpacePathLoss = CommunicationDistanceModel::calculateFreeSpacePathLoss(estimatedDistance, frequency);
+            double totalEnvironmentLoss = EnvironmentLossConfigManager::calculateTotalEnvironmentLoss(estimatedDistance, frequency, env);
+            double totalCalculatedLoss = freeSpacePathLoss + totalEnvironmentLoss;
+            
+            // 计算误差
+            double error = totalCalculatedLoss - maxPathLoss;
+            
+            // 如果误差足够小，退出迭代
+            if (std::abs(error) < 0.1) {
+                break;
+            }
+            
+            // 根据误差调整距离估计（简化的调整策略）
+            if (error > 0) {
+                estimatedDistance *= 0.9; // 损耗过大，减小距离
+            } else {
+                estimatedDistance *= 1.1; // 损耗过小，增大距离
+            }
+            
+            // 确保距离在合理范围内
+            if (estimatedDistance < 0.001) estimatedDistance = 0.001;
+            if (estimatedDistance > 1000.0) estimatedDistance = 1000.0;
+        }
         
-        return std::pow(10.0, (maxPathLoss - freeSpaceRef) / (10.0 * config.pathLossExponent)) / 1000.0; // km
+        return estimatedDistance;
     }
     
+    /// @brief 快速计算功率
+    /// @param frequency 频率 (MHz)
+    /// @param range 距离 (km)
+    /// @param env 环境类型
+    /// @return 功率 (dBm)
     double quickCalculatePower(double frequency, double range, EnvironmentType env) {
         // 从配置获取环境特性
         const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);
@@ -615,6 +672,10 @@ namespace CommunicationModelUtils {
         return -100.0 + 10.0 + pathLoss + totalLoss; // 噪声功率 + SNR + 路径损耗 + 环境损耗
     }
     
+    /// @brief 
+    /// @param snr 信噪比 (dB)
+    /// @param ber 误码率
+    /// @return 通信质量等级
     CommunicationQuality quickAssessQuality(double snr, double ber) {
         if (snr > 20.0 && ber < 1e-6) return CommunicationQuality::EXCELLENT;
         else if (snr > 10.0 && ber < 1e-4) return CommunicationQuality::GOOD;
@@ -623,26 +684,60 @@ namespace CommunicationModelUtils {
         else return CommunicationQuality::FAILED;
     }
     
+    /// @brief dBm 转换为瓦特
+    /// @param dBm  dBm 值
+    /// @return 瓦特值
     double dBmToWatts(double dBm) {
         return std::pow(10.0, (dBm - 30.0) / 10.0);
     }
     
+    /// @brief 瓦特转换为dBm
+    /// @param watts 瓦特值
+    /// @return dBm 值
     double wattsTodBm(double watts) {
         return 10.0 * std::log10(watts) + 30.0;
     }
     
+    /// @brief dB 转换为线性值
+    /// @param dB dB 值
+    /// @return 线性值
     double dBToLinear(double dB) {
         return std::pow(10.0, dB / 10.0);
     }
     
+    /// @brief 线性值转换为dB
+    /// @param linear 线性值
+    /// @return dB 值
     double linearTodB(double linear) {
         return 10.0 * std::log10(linear);
     }
     
+    /// @brief 频率转换为波长
+    /// @param frequency 频率 (MHz)
+    /// @return 波长 (m)
     double frequencyToWavelength(double frequency) {
         return 300.0 / frequency; // MHz to meters
     }
     
+    /// @brief 评估通信质量
+    /// @param snr 信噪比 (dB)
+    /// @param ber 误码率
+    /// @return 通信质量等级
+    CommunicationQuality evaluateQuality(double snr, double ber) {
+        return quickAssessQuality(snr, ber);
+    }
+    
+    /// @brief 快速评估通信质量
+    /// @param snr 信噪比 (dB)
+    /// @param ber 误码率
+    /// @return 通信质量等级
+    CommunicationQuality quickEvaluateQuality(double snr, double ber) {
+        return quickAssessQuality(snr, ber);
+    }
+    
+    /// @brief 波长转换为频率
+    /// @param wavelength 波长 (m)
+    /// @return 频率 (MHz)
     double wavelengthToFrequency(double wavelength) {
         return 300.0 / wavelength; // meters to MHz
     }
