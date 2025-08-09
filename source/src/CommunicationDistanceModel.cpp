@@ -6,7 +6,7 @@
 
 // 功率参数范围校验实现
 bool CommunicationDistanceModel::isPowerValid(double power_dBm) const {
-    return power_dBm >= -30.0 && power_dBm <= 30.0;  // 覆盖常见设备功率范围
+    return CommunicationParameterConfig::isTransmitPowerValid(power_dBm);
 }
 
 // 构造函数实现
@@ -19,24 +19,32 @@ CommunicationDistanceModel::CommunicationDistanceModel(
     double txPower
 ) : maxLineOfSight(maxLOS), envType(env), transmitPower(txPower) {
     // 校验最大视距
-    if (maxLOS < 0.5 || maxLOS > 50.0) {
-        throw std::invalid_argument("最大视距需在0.5-50km范围内");
+    if (!CommunicationParameterConfig::isMaxLineOfSightValid(maxLOS)) {
+        ParameterRange range = CommunicationParameterConfig::getMaxLineOfSightRange();
+        throw std::invalid_argument("最大视距需在" + std::to_string(range.minValue) + 
+                                   "-" + std::to_string(range.maxValue) + "km范围内");
     }
     // 校验衰减系数
     if (!EnvironmentLossConfigManager::isAttenuationValid(attenuation, env)) {
         throw std::invalid_argument("衰减系数不符合当前环境类型范围");
     }
     // 校验接收灵敏度
-    if (sensitivity < -110.0 || sensitivity > -90.0) {
-        throw std::invalid_argument("接收灵敏度需在-110至-90dBm范围内");
+    if (!CommunicationParameterConfig::isReceiveSensitivityValid(sensitivity)) {
+        ParameterRange range = CommunicationParameterConfig::getReceiveSensitivityRange();
+        throw std::invalid_argument("接收灵敏度需在" + std::to_string(range.minValue) + 
+                                   "至" + std::to_string(range.maxValue) + "dBm范围内");
     }
     // 校验链路余量
-    if (margin < 5.0 || margin > 20.0) {
-        throw std::invalid_argument("链路余量需在5-20dB范围内");
+    if (!CommunicationParameterConfig::isLinkMarginValid(margin)) {
+        ParameterRange range = CommunicationParameterConfig::getLinkMarginRange();
+        throw std::invalid_argument("链路余量需在" + std::to_string(range.minValue) + 
+                                   "-" + std::to_string(range.maxValue) + "dB范围内");
     }
     // 校验发射功率
-    if (!isPowerValid(txPower)) {
-        throw std::invalid_argument("发射功率需在-30至30dBm范围内");
+    if (!CommunicationParameterConfig::isTransmitPowerValid(txPower)) {
+        ParameterRange range = CommunicationParameterConfig::getTransmitPowerRange();
+        throw std::invalid_argument("发射功率需在" + std::to_string(range.minValue) + 
+                                   "至" + std::to_string(range.maxValue) + "dBm范围内");
     }
 
     envAttenuation = attenuation;
@@ -46,7 +54,7 @@ CommunicationDistanceModel::CommunicationDistanceModel(
 
 // 设置最大视距距离实现
 bool CommunicationDistanceModel::setMaxLineOfSight(double km) {
-    if (km >= 0.5 && km <= 50.0) {
+    if (CommunicationParameterConfig::isMaxLineOfSightValid(km)) {
         maxLineOfSight = km;
         return true;
     }
@@ -79,7 +87,7 @@ bool CommunicationDistanceModel::setEnvAttenuation(double attenuation) {
 
 // 设置接收灵敏度实现
 bool CommunicationDistanceModel::setReceiveSensitivity(double dBm) {
-    if (dBm >= -110.0 && dBm <= -90.0) {
+    if (CommunicationParameterConfig::isReceiveSensitivityValid(dBm)) {
         receiveSensitivity = dBm;
         return true;
     }
@@ -88,7 +96,7 @@ bool CommunicationDistanceModel::setReceiveSensitivity(double dBm) {
 
 // 设置链路余量实现
 bool CommunicationDistanceModel::setLinkMargin(double dB) {
-    if (dB >= 5.0 && dB <= 20.0) {
+    if (CommunicationParameterConfig::isLinkMarginValid(dB)) {
         linkMargin = dB;
         return true;
     }

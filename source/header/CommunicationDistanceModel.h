@@ -4,6 +4,7 @@
 #include <string>
 #include <stdexcept>
 #include "EnvironmentLossConfigManager.h"
+#include "CommunicationParameterConfig.h"
 
 class CommunicationDistanceModel {
 private:
