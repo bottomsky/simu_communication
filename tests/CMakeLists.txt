@@ -1,20 +1,53 @@
 # 测试构建配置
 cmake_minimum_required(VERSION 3.16)
 
-# 查找或下载Google Test
+# 尝试查找系统安装的Google Test
 find_package(GTest QUIET)
 
 if(NOT GTest_FOUND)
     # 如果没有找到GTest，使用FetchContent下载
     include(FetchContent)
+    
+    # 设置下载选项
+    set(FETCHCONTENT_QUIET OFF)
+    
     FetchContent_Declare(
         googletest
-        URL https://github.com/google/googletest/archive/03597a01ee50f33f9142fd2db563d69b413611e5.zip
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG        release-1.12.1
+        GIT_SHALLOW    TRUE
     )
     
     # 对于Windows: 防止覆盖父项目的编译器/链接器设置
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    
+    # 禁用Google Test的安装
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    
     FetchContent_MakeAvailable(googletest)
+    
+    # 如果仍然失败，创建简单的测试框架
+    if(NOT TARGET gtest_main)
+        message(WARNING "Google Test下载失败，将创建简单的测试框架")
+        
+        # 创建简单的测试主函数
+        add_library(simple_test_main STATIC)
+        target_sources(simple_test_main PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/simple_test_main.cpp
+        )
+        
+        # 定义简单的测试宏
+        target_compile_definitions(simple_test_main PUBLIC
+            EXPECT_EQ=simple_expect_eq
+            EXPECT_TRUE=simple_expect_true
+            EXPECT_FALSE=simple_expect_false
+            TEST_F=simple_test_f
+        )
+        
+        # 设置别名
+        add_library(gtest_main ALIAS simple_test_main)
+        add_library(gtest ALIAS simple_test_main)
+    endif()
 endif()
 
 # 包含测试头文件目录

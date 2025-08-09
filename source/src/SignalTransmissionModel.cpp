@@ -115,3 +115,65 @@ double SignalTransmissionModel::getTransmitPower() const {
 std::string SignalTransmissionModel::getParameterInfo() const {
     std::stringstream ss;
     ss << "信号传输模型参数:\n";
+    
+    // 频段信息
+    ss << "  工作频段: ";
+    switch (band) {
+        case FrequencyBand::SHORT_WAVE:
+            ss << "短波 (1.5-30MHz)";
+            break;
+        case FrequencyBand::ULTRA_SHORT_WAVE:
+            ss << "超短波 (30-300MHz)";
+            break;
+        case FrequencyBand::MICROWAVE:
+            ss << "微波 (300MHz-30GHz)";
+            break;
+    }
+    ss << "\n";
+    
+    // 中心频率
+    ss << "  中心频率: " << centerFrequency << " kHz";
+    if (centerFrequency >= 1000000) {
+        ss << " (" << (centerFrequency / 1000000.0) << " GHz)";
+    } else if (centerFrequency >= 1000) {
+        ss << " (" << (centerFrequency / 1000.0) << " MHz)";
+    }
+    ss << "\n";
+    
+    // 调制方式
+    ss << "  调制方式: ";
+    switch (modulation) {
+        case ModulationType::AM:
+            ss << "调幅 (AM)";
+            break;
+        case ModulationType::FM:
+            ss << "调频 (FM)";
+            break;
+        case ModulationType::BPSK:
+            ss << "二进制相移键控 (BPSK)";
+            break;
+        case ModulationType::QPSK:
+            ss << "四相相移键控 (QPSK)";
+            break;
+        case ModulationType::QAM16:
+            ss << "16进制正交幅度调制 (QAM16)";
+            break;
+    }
+    ss << "\n";
+    
+    // 信号带宽
+    ss << "  信号带宽: " << signalBandwidth << " kHz";
+    if (signalBandwidth >= 1000) {
+        ss << " (" << (signalBandwidth / 1000.0) << " MHz)";
+    }
+    ss << "\n";
+    
+    // 发射功率
+    ss << "  发射功率: " << transmitPower << " W";
+    if (transmitPower >= 1000) {
+        ss << " (" << (transmitPower / 1000.0) << " kW)";
+    }
+    ss << "\n";
+    
+    return ss.str();
+}

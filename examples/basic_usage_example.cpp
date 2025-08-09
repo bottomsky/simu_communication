@@ -1,5 +1,7 @@
 #include <iostream>
 #include <iomanip>
+#include <vector>
+#include <string>
 #include "SignalTransmissionModel.h"
 #include "CommunicationDistanceModel.h"
 
@@ -29,8 +31,8 @@ void demonstrateSignalTransmissionModel() {
         std::cout << "\n--- 修改信号参数 ---" << std::endl;
         
         // 修改调制方式
-        signalModel.setModulationType(ModulationType::PSK);
-        std::cout << "✓ 调制方式已改为PSK" << std::endl;
+        signalModel.setModulationType(ModulationType::BPSK);
+        std::cout << "✓ 调制方式已改为BPSK" << std::endl;
         
         // 修改功率
         if (signalModel.setTransmitPower(50.0)) {
@@ -64,19 +66,19 @@ void demonstrateCommunicationDistanceModel() {
     try {
         // 创建通信距离模型
         CommunicationDistanceModel distanceModel(
-            EnvironmentType::SUBURBAN,
             50.0,      // 50km最大视距
+            EnvironmentType::URBAN_AREA,
+            2.0,       // 环境衰减系数
             -100.0,    // -100dBm接收灵敏度
             10.0,      // 10dB链路余量
-            20.0,      // 20W发射功率
-            100000.0   // 100MHz频率
+            20.0       // 20dBm发射功率
         );
         
         std::cout << "✓ 成功创建通信距离模型" << std::endl;
         std::cout << distanceModel.getParameterInfo() << std::endl;
         
         // 计算有效通信距离
-        double distance = distanceModel.calculateEffectiveCommunicationDistance();
+        double distance = distanceModel.calculateEffectiveDistance();
         std::cout << "\n--- 通信距离计算结果 ---" << std::endl;
         std::cout << "有效通信距离: " << std::fixed << std::setprecision(2) 
                   << distance << " km" << std::endl;
@@ -90,17 +92,14 @@ void demonstrateCommunicationDistanceModel() {
         };
         
         std::vector<EnvironmentTest> environments = {
-            {EnvironmentType::FREE_SPACE, "自由空间"},
-            {EnvironmentType::RURAL, "农村环境"},
-            {EnvironmentType::SUBURBAN, "郊区环境"},
-            {EnvironmentType::URBAN, "城市环境"},
-            {EnvironmentType::DENSE_URBAN, "密集城市"},
-            {EnvironmentType::INDOOR, "室内环境"}
+            {EnvironmentType::OPEN_FIELD, "开阔地"},
+            {EnvironmentType::URBAN_AREA, "城市区域"},
+            {EnvironmentType::MOUNTAINOUS, "山区"}
         };
         
         for (const auto& env : environments) {
             distanceModel.setEnvironmentType(env.env);
-            double envDistance = distanceModel.calculateEffectiveCommunicationDistance();
+            double envDistance = distanceModel.calculateEffectiveDistance();
             std::cout << std::setw(12) << env.name << ": " 
                       << std::fixed << std::setprecision(2) 
                       << envDistance << " km" << std::endl;
@@ -126,12 +125,12 @@ void demonstrateIntegratedUsage() {
         
         // 创建对应的通信距离模型
         CommunicationDistanceModel distanceModel(
-            EnvironmentType::RURAL,
-            100.0,
-            -110.0,
-            15.0,
-            signalModel.getTransmitPower(),      // 使用相同功率
-            signalModel.getCenterFrequency()     // 使用相同频率
+            30.0,      // 最大视距
+            EnvironmentType::OPEN_FIELD,
+            1.0,       // 环境衰减系数
+            -110.0,    // 接收灵敏度
+            15.0,      // 链路余量
+            30.0       // 发射功率(dBm)
         );
         
         std::cout << "✓ 创建了配套的信号传输和通信距离模型" << std::endl;
@@ -141,35 +140,35 @@ void demonstrateIntegratedUsage() {
         std::cout << "初始配置:" << std::endl;
         std::cout << "  信号功率: " << signalModel.getTransmitPower() << " W" << std::endl;
         std::cout << "  通信距离: " << std::fixed << std::setprecision(2) 
-                  << distanceModel.calculateEffectiveCommunicationDistance() << " km" << std::endl;
+                  << distanceModel.calculateEffectiveDistance() << " km" << std::endl;
         
         // 修改信号功率并同步
         signalModel.setTransmitPower(60.0);
-        distanceModel.setTransmitPower(signalModel.getTransmitPower());
+        distanceModel.setTransmitPower(35.0);  // 对应的dBm值
         
         std::cout << "\n功率调整后:" << std::endl;
         std::cout << "  信号功率: " << signalModel.getTransmitPower() << " W" << std::endl;
         std::cout << "  通信距离: " << std::fixed << std::setprecision(2) 
-                  << distanceModel.calculateEffectiveCommunicationDistance() << " km" << std::endl;
+                  << distanceModel.calculateEffectiveDistance() << " km" << std::endl;
         
         // 演示频率对通信距离的影响
         std::cout << "\n--- 频率影响演示 ---" << std::endl;
         
-        std::vector<double> frequencies = {50000.0, 100000.0, 200000.0, 500000.0};
-        std::vector<std::string> freqNames = {"50MHz", "100MHz", "200MHz", "500MHz"};
+        std::vector<double> frequencies = {50000.0, 100000.0, 200000.0};
+        std::vector<std::string> freqNames = {"50MHz", "100MHz", "200MHz"};
         
         for (size_t i = 0; i < frequencies.size(); ++i) {
             if (signalModel.setCenterFrequency(frequencies[i])) {
                 CommunicationDistanceModel tempModel(
-                    EnvironmentType::RURAL,
-                    100.0,
-                    -110.0,
-                    15.0,
-                    signalModel.getTransmitPower(),
-                    frequencies[i]
+                    30.0,      // 最大视距
+                    EnvironmentType::OPEN_FIELD,
+                    1.0,       // 环境衰减系数
+                    -110.0,    // 接收灵敏度
+                    15.0,      // 链路余量
+                    30.0       // 发射功率(dBm)
                 );
                 
-                double dist = tempModel.calculateEffectiveCommunicationDistance();
+                double dist = tempModel.calculateEffectiveDistance();
                 std::cout << freqNames[i] << " 频率下的通信距离: " 
                           << std::fixed << std::setprecision(2) << dist << " km" << std::endl;
             }

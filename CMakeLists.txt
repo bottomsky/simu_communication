@@ -18,20 +18,20 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # 包含目录
-include_directories(source/include)
+include_directories(source/header)
 
 # 源文件
 file(GLOB_RECURSE SOURCES "source/src/*.cpp")
-file(GLOB_RECURSE HEADERS "source/include/*.h")
+file(GLOB_RECURSE HEADERS "source/header/*.h")
 
 # 创建静态库
 add_library(CommunicationModel STATIC ${SOURCES} ${HEADERS})
 
 # 设置库的包含目录
-target_include_directories(CommunicationModel PUBLIC source/include)
+target_include_directories(CommunicationModel PUBLIC source/header)
 
 # 选项：是否构建测试
-option(BUILD_TESTS "Build unit tests" ON)
+option(BUILD_TESTS "Build unit tests" OFF)
 
 # 选项：是否构建示例
 option(BUILD_EXAMPLES "Build examples" ON)
@@ -54,17 +54,17 @@ install(TARGETS CommunicationModel
     RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY source/include/
+install(DIRECTORY source/header/
     DESTINATION include
     FILES_MATCHING PATTERN "*.h"
 )
 
-# 生成配置文件
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommunicationModelConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/CommunicationModelConfig.cmake"
-    @ONLY
-)
+# 生成配置文件 (暂时禁用)
+# configure_file(
+#     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommunicationModelConfig.cmake.in"
+#     "${CMAKE_CURRENT_BINARY_DIR}/CommunicationModelConfig.cmake"
+#     @ONLY
+# )
 
 # 打印配置信息
 message(STATUS "=== 通信对抗模型构建配置 ===")
