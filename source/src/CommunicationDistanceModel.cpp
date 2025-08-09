@@ -1,4 +1,5 @@
 #include "CommunicationDistanceModel.h"
+#include "MathConstants.h"
 #include <sstream>
 #include <cmath>
 
@@ -69,11 +70,11 @@ void CommunicationDistanceModel::setEnvironmentType(EnvironmentType env) {
     
     // 根据环境损耗配置计算衰减系数
     // 将环境损耗转换为衰减系数 (简化模型：每10dB环境损耗对应1.0衰减系数增量)
-    envAttenuation = 1.0 + (config.environmentLoss / 10.0);
+    envAttenuation = MathConstants::ENV_ATTENUATION_BASE + (config.environmentLoss / MathConstants::LINEAR_TO_DB_MULTIPLIER);
     
     // 确保衰减系数在合理范围内
-    if (envAttenuation < 0.5) envAttenuation = 0.5;
-    if (envAttenuation > 5.0) envAttenuation = 5.0;
+    if (envAttenuation < MathConstants::ENV_ATTENUATION_MIN) envAttenuation = MathConstants::ENV_ATTENUATION_MIN;
+    if (envAttenuation > MathConstants::ENV_ATTENUATION_MAX) envAttenuation = MathConstants::ENV_ATTENUATION_MAX;
 }
 
 // 设置环境衰减系数实现
@@ -149,7 +150,7 @@ double CommunicationDistanceModel::calculateEffectiveDistance() const {
     if (powerDiff < 0) return 0.0;  // 功率不足，无法通信
     
     // 功率距离因子（简化模型：每增加6dB，距离翻倍）
-    double powerDistanceFactor = pow(2.0, powerDiff / 6.0);
+    double powerDistanceFactor = pow(MathConstants::POWER_DISTANCE_BASE, powerDiff / MathConstants::POWER_DISTANCE_DB_FACTOR);
 
     // 2. 计算环境受限距离（视距/衰减系数）
     double envLimitedDistance = maxLineOfSight / envAttenuation;
@@ -166,7 +167,9 @@ double CommunicationDistanceModel::calculateFreeSpacePathLoss(double distance_km
     
     // 自由空间路径损耗公式: FSPL = 20*log10(d) + 20*log10(f) + 32.45
     // 其中 d 为距离(km)，f 为频率(MHz)
-    double fspl = 20.0 * std::log10(distance_km) + 20.0 * std::log10(frequency_MHz) + 32.45;
+    double fspl = MathConstants::FSPL_DISTANCE_COEFFICIENT * std::log10(distance_km) + 
+                  MathConstants::FSPL_FREQUENCY_COEFFICIENT * std::log10(frequency_MHz) + 
+                  MathConstants::FSPL_CONSTANT;
     return fspl;
 }
 
@@ -213,10 +216,10 @@ double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz) con
     }
     
     // 使用迭代方法求解距离
-    double estimatedDistance = 1.0; // 初始估计距离 1km
+    double estimatedDistance = MathConstants::INITIAL_DISTANCE_ESTIMATE; // 初始估计距离 1km
     
     // 迭代求解距离（牛顿法的简化版本）
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < MathConstants::MAX_ITERATIONS; i++) {
         // 计算当前距离下的总路径损耗
         double totalCalculatedLoss = calculateTotalPathLoss(estimatedDistance, frequency_MHz);
         
@@ -224,19 +227,19 @@ double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz) con
         double error = totalCalculatedLoss - maxPathLoss;
         
         // 如果误差足够小，退出迭代
-        if (std::abs(error) < 0.1) {
+        if (std::abs(error) < MathConstants::CONVERGENCE_TOLERANCE) {
             break;
         }
         
         // 根据误差调整距离估计
         if (error > 0) {
-            estimatedDistance *= 0.9; // 损耗过大，减小距离
+            estimatedDistance *= MathConstants::DISTANCE_DECREASE_FACTOR; // 损耗过大，减小距离
         } else {
-            estimatedDistance *= 1.1; // 损耗过小，增大距离
+            estimatedDistance *= MathConstants::DISTANCE_INCREASE_FACTOR; // 损耗过小，增大距离
         }
         
         // 确保距离在合理范围内
-        if (estimatedDistance < 0.001) estimatedDistance = 0.001;
+        if (estimatedDistance < MathConstants::MIN_DISTANCE_LIMIT) estimatedDistance = MathConstants::MIN_DISTANCE_LIMIT;
         if (estimatedDistance > maxLineOfSight) estimatedDistance = maxLineOfSight;
     }
     
@@ -247,11 +250,11 @@ double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz) con
 double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz, double power_dBm, EnvironmentType env) {
     // 创建临时模型实例，使用传入的参数
     CommunicationDistanceModel tempModel(
-        50.0,       // 最大视距50km（在有效范围内，足够大不限制计算）
+        MathConstants::DEFAULT_MAX_LINE_OF_SIGHT,       // 最大视距50km（在有效范围内，足够大不限制计算）
         env,        // 环境类型
-        1.0,        // 默认衰减系数（会被环境类型覆盖）
-        -100.0,     // 接收灵敏度-100dBm
-        10.0,       // 链路余量10dB
+        MathConstants::ENV_ATTENUATION_BASE,        // 默认衰减系数（会被环境类型覆盖）
+        MathConstants::DEFAULT_RECEIVE_SENSITIVITY,     // 接收灵敏度-100dBm
+        MathConstants::DEFAULT_LINK_MARGIN,       // 链路余量10dB
         power_dBm   // 发射功率
     );
     

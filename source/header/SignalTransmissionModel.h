@@ -57,7 +57,7 @@ public:
     std::string getParameterInfo() const;
 
     // 频段对应的频率范围校验
-    bool isFrequencyInBand(double freqKHz, FrequencyBand band) const;
+    bool isFrequencyInBand(double freqKHz, FrequencyBand bandType) const;
 };
 
 #endif // SIGNAL_TRANSMISSION_MODEL_H

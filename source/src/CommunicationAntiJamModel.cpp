@@ -1,5 +1,6 @@
 #include "CommunicationAntiJamModel.h"
 #include "CommunicationAntiJamParameterConfig.h"
+#include "MathConstants.h"
 #include <cmath>
 #include <algorithm>
 #include <sstream>
@@ -10,23 +11,23 @@
 CommunicationAntiJamModel::CommunicationAntiJamModel() 
     : antiJamTechnique_(AntiJamTechnique::FREQUENCY_HOPPING)
     , antiJamStrategy_(AntiJamStrategy::ADAPTIVE)
-    , processingGain_(20.0)
-    , spreadingFactor_(1000.0)
-    , hoppingRate_(1000.0)
-    , codingGain_(3.0)
-    , systemBandwidth_(100.0)
-    , signalPower_(-80.0)
-    , noisePower_(-100.0)
-    , interferenceLevel_(-70.0)
-    , hoppingChannels_(100)
-    , channelSpacing_(1.0)
-    , dwellTime_(1.0)
-    , chipRate_(10)
-    , sequenceLength_(1023.0)
-    , adaptationSpeed_(0.1)
-    , convergenceThreshold_(0.01)
-    , environmentType_(0.5)
-    , jammerDensity_(0.1) {
+    , processingGain_(MathConstants::DEFAULT_PROCESSING_GAIN)
+    , spreadingFactor_(MathConstants::DEFAULT_SPREADING_FACTOR)
+    , hoppingRate_(MathConstants::DEFAULT_HOPPING_RATE)
+    , codingGain_(MathConstants::DEFAULT_CODING_GAIN)
+    , systemBandwidth_(MathConstants::DEFAULT_SYSTEM_BANDWIDTH)
+    , signalPower_(MathConstants::DEFAULT_SIGNAL_POWER)
+    , noisePower_(MathConstants::DEFAULT_NOISE_POWER)
+    , interferenceLevel_(MathConstants::DEFAULT_INTERFERENCE_LEVEL)
+    , hoppingChannels_(MathConstants::DEFAULT_HOPPING_CHANNELS)
+    , channelSpacing_(MathConstants::DEFAULT_CHANNEL_SPACING)
+    , dwellTime_(MathConstants::DEFAULT_DWELL_TIME)
+    , chipRate_(MathConstants::DEFAULT_CHIP_RATE)
+    , sequenceLength_(MathConstants::DEFAULT_SEQUENCE_LENGTH)
+    , adaptationSpeed_(MathConstants::DEFAULT_ADAPTATION_SPEED)
+    , convergenceThreshold_(MathConstants::DEFAULT_CONVERGENCE_THRESHOLD)
+    , environmentType_(MathConstants::DEFAULT_ENVIRONMENT_TYPE)
+    , jammerDensity_(MathConstants::DEFAULT_JAMMER_DENSITY) {
 }
 
 CommunicationAntiJamModel::CommunicationAntiJamModel(AntiJamTechnique technique, 
@@ -41,19 +42,19 @@ CommunicationAntiJamModel::CommunicationAntiJamModel(AntiJamTechnique technique,
     , spreadingFactor_(spreadingFactor)
     , hoppingRate_(hoppingRate)
     , codingGain_(codingGain)
-    , systemBandwidth_(100.0)
-    , signalPower_(-80.0)
-    , noisePower_(-100.0)
-    , interferenceLevel_(-70.0)
-    , hoppingChannels_(100)
-    , channelSpacing_(1.0)
-    , dwellTime_(1.0)
-    , chipRate_(10)
-    , sequenceLength_(1023.0)
-    , adaptationSpeed_(0.1)
-    , convergenceThreshold_(0.01)
-    , environmentType_(0.5)
-    , jammerDensity_(0.1) {
+    , systemBandwidth_(MathConstants::DEFAULT_SYSTEM_BANDWIDTH)
+    , signalPower_(MathConstants::DEFAULT_SIGNAL_POWER)
+    , noisePower_(MathConstants::DEFAULT_NOISE_POWER)
+    , interferenceLevel_(MathConstants::DEFAULT_INTERFERENCE_LEVEL)
+    , hoppingChannels_(MathConstants::DEFAULT_HOPPING_CHANNELS)
+    , channelSpacing_(MathConstants::DEFAULT_CHANNEL_SPACING)
+    , dwellTime_(MathConstants::DEFAULT_DWELL_TIME)
+    , chipRate_(MathConstants::DEFAULT_CHIP_RATE)
+    , sequenceLength_(MathConstants::DEFAULT_SEQUENCE_LENGTH)
+    , adaptationSpeed_(MathConstants::DEFAULT_ADAPTATION_SPEED)
+    , convergenceThreshold_(MathConstants::DEFAULT_CONVERGENCE_THRESHOLD)
+    , environmentType_(MathConstants::DEFAULT_ENVIRONMENT_TYPE)
+    , jammerDensity_(MathConstants::DEFAULT_JAMMER_DENSITY) {
 }
 
 // 参数校验
@@ -194,36 +195,36 @@ bool CommunicationAntiJamModel::setJammerDensity(double density) {
 // 内部计算方法
 double CommunicationAntiJamModel::calculateFrequencyHoppingGain() const {
     // 跳频增益 = 10 * log10(跳频信道数)
-    return 10.0 * std::log10(static_cast<double>(hoppingChannels_));
+    return MathConstants::LINEAR_TO_DB_MULTIPLIER * std::log10(static_cast<double>(hoppingChannels_));
 }
 
 double CommunicationAntiJamModel::calculateDirectSequenceGain() const {
     // 直接序列扩频增益 = 10 * log10(扩频因子)
-    return 10.0 * std::log10(spreadingFactor_);
+    return MathConstants::LINEAR_TO_DB_MULTIPLIER * std::log10(spreadingFactor_);
 }
 
 double CommunicationAntiJamModel::calculateTimeHoppingGain() const {
     // 跳时增益基于跳时速率和驻留时间
-    double timeSlots = 1000.0 / dwellTime_; // 每秒时隙数
-    return 10.0 * std::log10(timeSlots);
+    double timeSlots = MathConstants::TIME_SLOTS_PER_SECOND / dwellTime_; // 每秒时隙数
+    return MathConstants::LINEAR_TO_DB_MULTIPLIER * std::log10(timeSlots);
 }
 
 double CommunicationAntiJamModel::calculateAdaptiveFilteringGain() const {
     // 自适应滤波增益基于自适应速度和收敛性能
-    double adaptiveGain = 5.0 + 10.0 * adaptationSpeed_ - 20.0 * convergenceThreshold_;
-    return std::max(0.0, std::min(15.0, adaptiveGain));
+    double adaptiveGain = MathConstants::ADAPTIVE_GAIN_BASE + MathConstants::ADAPTIVE_GAIN_SPEED_COEFF * adaptationSpeed_ - MathConstants::ADAPTIVE_GAIN_CONVERGENCE_COEFF * convergenceThreshold_;
+    return std::max(MathConstants::MIN_ADAPTIVE_GAIN, std::min(MathConstants::MAX_ADAPTIVE_GAIN, adaptiveGain));
 }
 
 double CommunicationAntiJamModel::calculateBeamFormingGain() const {
     // 波束成形增益，假设基于系统带宽
-    double beamGain = 3.0 + 0.01 * systemBandwidth_;
-    return std::max(0.0, std::min(20.0, beamGain));
+    double beamGain = MathConstants::BEAM_GAIN_BASE + MathConstants::BEAM_GAIN_BANDWIDTH_COEFF * systemBandwidth_;
+    return std::max(MathConstants::MIN_BEAM_GAIN, std::min(MathConstants::MAX_BEAM_GAIN, beamGain));
 }
 
 double CommunicationAntiJamModel::calculateDiversityGain() const {
     // 分集增益，基于环境类型
-    double diversityGain = 2.0 + 8.0 * environmentType_;
-    return std::max(0.0, std::min(10.0, diversityGain));
+    double diversityGain = MathConstants::DIVERSITY_GAIN_BASE + MathConstants::DIVERSITY_GAIN_ENV_COEFF * environmentType_;
+    return std::max(MathConstants::MIN_DIVERSITY_GAIN, std::min(MathConstants::MAX_DIVERSITY_GAIN, diversityGain));
 }
 
 double CommunicationAntiJamModel::calculateErrorCorrectionGain() const {
@@ -233,8 +234,8 @@ double CommunicationAntiJamModel::calculateErrorCorrectionGain() const {
 
 double CommunicationAntiJamModel::calculateInterferenceCancellationGain() const {
     // 干扰抵消增益，基于干扰机密度
-    double cancellationGain = 10.0 * (1.0 - jammerDensity_);
-    return std::max(0.0, std::min(15.0, cancellationGain));
+    double cancellationGain = MathConstants::CANCELLATION_GAIN_MULTIPLIER * (MathConstants::CANCELLATION_GAIN_BASE - jammerDensity_);
+    return std::max(MathConstants::MIN_CANCELLATION_GAIN, std::min(MathConstants::MAX_CANCELLATION_GAIN, cancellationGain));
 }
 
 double CommunicationAntiJamModel::calculateTotalProcessingGain() const {
@@ -251,7 +252,7 @@ double CommunicationAntiJamModel::calculateTotalProcessingGain() const {
             totalGain += calculateTimeHoppingGain();
             break;
         case AntiJamTechnique::HYBRID_SPREAD:
-            totalGain += (calculateFrequencyHoppingGain() + calculateDirectSequenceGain()) * 0.7;
+            totalGain += (calculateFrequencyHoppingGain() + calculateDirectSequenceGain()) * MathConstants::HYBRID_SPREAD_FACTOR;
             break;
         case AntiJamTechnique::ADAPTIVE_FILTERING:
             totalGain += calculateAdaptiveFilteringGain();
@@ -260,7 +261,7 @@ double CommunicationAntiJamModel::calculateTotalProcessingGain() const {
             totalGain += calculateBeamFormingGain();
             break;
         case AntiJamTechnique::POWER_CONTROL:
-            totalGain += 3.0; // 固定功率控制增益
+            totalGain += MathConstants::POWER_CONTROL_GAIN; // 固定功率控制增益
             break;
         case AntiJamTechnique::ERROR_CORRECTION:
             totalGain += calculateErrorCorrectionGain();
@@ -285,19 +286,19 @@ double CommunicationAntiJamModel::calculateAntiJamGain() const {
     // 根据抗干扰策略调整增益
     switch (antiJamStrategy_) {
         case AntiJamStrategy::PASSIVE:
-            totalGain *= 0.8; // 被动策略效果较低
+            totalGain *= MathConstants::PASSIVE_STRATEGY_FACTOR; // 被动策略效果较低
             break;
         case AntiJamStrategy::ACTIVE:
-            totalGain *= 1.0; // 主动策略标准效果
+            totalGain *= MathConstants::ACTIVE_STRATEGY_FACTOR; // 主动策略标准效果
             break;
         case AntiJamStrategy::ADAPTIVE:
-            totalGain *= 1.2; // 自适应策略效果较好
+            totalGain *= MathConstants::ADAPTIVE_STRATEGY_FACTOR; // 自适应策略效果较好
             break;
         case AntiJamStrategy::COOPERATIVE:
-            totalGain *= 1.3; // 协作策略效果更好
+            totalGain *= MathConstants::COOPERATIVE_STRATEGY_FACTOR; // 协作策略效果更好
             break;
         case AntiJamStrategy::COGNITIVE:
-            totalGain *= 1.4; // 认知策略效果最好
+            totalGain *= MathConstants::COGNITIVE_STRATEGY_FACTOR; // 认知策略效果最好
             break;
     }
     
@@ -312,15 +313,21 @@ double CommunicationAntiJamModel::calculateJammerResistance() const {
     double signalToJammer = signalPower_ - interferenceLevel_ + antiJamGain;
     
     // 抗干扰能力基于信干比和抗干扰增益
-    double resistance = signalToJammer / (signalToNoise + 1.0);
-    return std::max(0.0, std::min(1.0, resistance / 20.0));
+    double jammerPower = interferenceLevel_;
+    double resistance = MathConstants::MAX_RESISTANCE - (jammerPower / (jammerPower + signalPower_));
+    resistance = std::max(MathConstants::MIN_RESISTANCE, resistance);
+    
+    // 考虑抗干扰增益
+    resistance *= (MathConstants::RESISTANCE_BASE + antiJamGain / MathConstants::RESISTANCE_GAIN_DIVISOR);
+    return std::max(0.0, std::min(1.0, resistance));
 }
 
 double CommunicationAntiJamModel::calculateSignalToJammerRatio() const {
-    if (!validateParameters()) return -100.0;
+    if (!validateParameters()) return MathConstants::MIN_SJR_DB;
     
     double antiJamGain = calculateAntiJamGain();
-    return signalPower_ - interferenceLevel_ + antiJamGain;
+    double signalToJammer = signalPower_ - interferenceLevel_ + antiJamGain;
+    return std::max(MathConstants::MIN_SJR_DB, signalToJammer);
 }
 
 double CommunicationAntiJamModel::calculateBitErrorRateWithJamming() const {
@@ -334,19 +341,19 @@ double CommunicationAntiJamModel::calculateBitErrorRateWithJamming() const {
     double effectiveSnr = signalPower_ - totalNoise;
     
     // 简化的误码率计算（BPSK调制）
-    double linearSnr = std::pow(10.0, effectiveSnr / 10.0);
-    double ber = 0.5 * std::erfc(std::sqrt(linearSnr));
+    double linearSnr = std::pow(MathConstants::LINEAR_TO_DB_BASE, effectiveSnr / MathConstants::LINEAR_TO_DB_MULTIPLIER);
+    double ber = MathConstants::BER_COEFFICIENT * std::erfc(std::sqrt(linearSnr));
     
-    return std::max(1e-10, std::min(0.5, ber));
+    return std::max(MathConstants::MIN_BER, std::min(MathConstants::MAX_BER, ber));
 }
 
 double CommunicationAntiJamModel::calculateThroughputDegradation() const {
     if (!validateParameters()) return 1.0;
     
     double ber = calculateBitErrorRateWithJamming();
-    double degradation = 1.0 - std::exp(-10.0 * ber);
+    double degradation = MathConstants::MAX_DEGRADATION - std::exp(-MathConstants::DEGRADATION_FACTOR * ber);
     
-    return std::max(0.0, std::min(1.0, degradation));
+    return std::max(MathConstants::MIN_DEGRADATION, std::min(MathConstants::MAX_DEGRADATION, degradation));
 }
 
 double CommunicationAntiJamModel::calculateDetectionProbability() const {
@@ -355,9 +362,9 @@ double CommunicationAntiJamModel::calculateDetectionProbability() const {
     double sjr = calculateSignalToJammerRatio();
     
     // 检测概率基于信干比
-    double detectionProb = 1.0 / (1.0 + std::exp(-(sjr + 10.0) / 5.0));
+    double detectionProb = MathConstants::MAX_DETECTION_PROB / (MathConstants::MAX_DETECTION_PROB + std::exp(-(sjr + MathConstants::DETECTION_OFFSET) / MathConstants::DETECTION_SCALE));
     
-    return std::max(0.0, std::min(1.0, detectionProb));
+    return std::max(MathConstants::MIN_DETECTION_PROB, std::min(MathConstants::MAX_DETECTION_PROB, detectionProb));
 }
 
 double CommunicationAntiJamModel::calculateInterceptionResistance() const {
@@ -370,19 +377,19 @@ double CommunicationAntiJamModel::calculateInterceptionResistance() const {
     
     switch (antiJamTechnique_) {
         case AntiJamTechnique::FREQUENCY_HOPPING:
-            resistance = 0.8 + 0.2 * std::min(1.0, hoppingRate_ / 10000.0);
+            resistance = MathConstants::FH_BASE_RESISTANCE + MathConstants::FH_RESISTANCE_FACTOR * std::min(MathConstants::MAX_RESISTANCE_FACTOR, hoppingRate_ / MathConstants::FH_RATE_NORMALIZATION);
             break;
         case AntiJamTechnique::DIRECT_SEQUENCE:
-            resistance = 0.7 + 0.3 * std::min(1.0, spreadingFactor_ / 10000.0);
+            resistance = MathConstants::DS_BASE_RESISTANCE + MathConstants::DS_RESISTANCE_FACTOR * std::min(MathConstants::MAX_RESISTANCE_FACTOR, spreadingFactor_ / MathConstants::DS_FACTOR_NORMALIZATION);
             break;
         case AntiJamTechnique::TIME_HOPPING:
-            resistance = 0.6 + 0.4 * std::min(1.0, 1.0 / dwellTime_);
+            resistance = MathConstants::TH_BASE_RESISTANCE + MathConstants::TH_RESISTANCE_FACTOR * std::min(MathConstants::MAX_RESISTANCE_FACTOR, MathConstants::MAX_RESISTANCE_FACTOR / dwellTime_);
             break;
         case AntiJamTechnique::HYBRID_SPREAD:
-            resistance = 0.9;
+            resistance = MathConstants::HYBRID_RESISTANCE;
             break;
         default:
-            resistance = 0.3 + 0.02 * antiJamGain;
+            resistance = MathConstants::DEFAULT_BASE_RESISTANCE + MathConstants::DEFAULT_RESISTANCE_FACTOR * antiJamGain;
             break;
     }
     
@@ -395,10 +402,10 @@ double CommunicationAntiJamModel::calculateInterceptionResistance() const {
 AntiJamEffectLevel CommunicationAntiJamModel::evaluateAntiJamEffect() const {
     double effectiveness = calculateProtectionEffectiveness();
     
-    if (effectiveness < 0.2) return AntiJamEffectLevel::NO_PROTECTION;
-    else if (effectiveness < 0.4) return AntiJamEffectLevel::LOW_PROTECTION;
-    else if (effectiveness < 0.6) return AntiJamEffectLevel::MEDIUM_PROTECTION;
-    else if (effectiveness < 0.8) return AntiJamEffectLevel::HIGH_PROTECTION;
+    if (effectiveness < MathConstants::NO_PROTECTION_THRESHOLD) return AntiJamEffectLevel::NO_PROTECTION;
+    else if (effectiveness < MathConstants::LOW_PROTECTION_THRESHOLD) return AntiJamEffectLevel::LOW_PROTECTION;
+    else if (effectiveness < MathConstants::MEDIUM_PROTECTION_THRESHOLD) return AntiJamEffectLevel::MEDIUM_PROTECTION;
+    else if (effectiveness < MathConstants::HIGH_PROTECTION_THRESHOLD) return AntiJamEffectLevel::HIGH_PROTECTION;
     else return AntiJamEffectLevel::EXCELLENT_PROTECTION;
 }
 
@@ -410,10 +417,10 @@ double CommunicationAntiJamModel::calculateProtectionEffectiveness() const {
     
     double resistance = calculateJammerResistance();
     double interceptionResistance = calculateInterceptionResistance();
-    double throughputMaintenance = 1.0 - calculateThroughputDegradation();
+    double throughputMaintenance = MathConstants::MAX_THROUGHPUT_MAINTENANCE - calculateThroughputDegradation();
     
     // 综合保护有效性
-    double effectiveness = (resistance * 0.4 + interceptionResistance * 0.3 + throughputMaintenance * 0.3);
+    double effectiveness = (resistance * MathConstants::RESISTANCE_WEIGHT + interceptionResistance * MathConstants::INTERCEPTION_WEIGHT + throughputMaintenance * MathConstants::THROUGHPUT_WEIGHT);
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
@@ -430,7 +437,7 @@ double CommunicationAntiJamModel::calculateAdaptationEfficiency() const {
     }
     
     // 自适应效率基于自适应速度和收敛阈值
-    double efficiency = adaptationSpeed_ * (1.0 - convergenceThreshold_);
+    double efficiency = adaptationSpeed_ * (MathConstants::MAX_ADAPTATION_EFFICIENCY - convergenceThreshold_);
     
     return std::max(0.0, std::min(1.0, efficiency));
 }
@@ -441,11 +448,11 @@ double CommunicationAntiJamModel::calculateAdaptationEfficiency() const {
 double CommunicationAntiJamModel::calculateResourceUtilization() const {
     if (!validateParameters()) return 0.0;
     
-    double bandwidthUtilization = std::min(1.0, systemBandwidth_ / 1000.0);
-    double powerUtilization = std::min(1.0, (signalPower_ + 100.0) / 150.0);
-    double processingUtilization = std::min(1.0, processingGain_ / 50.0);
+    double bandwidthUtilization = std::min(MathConstants::MAX_BANDWIDTH_UTILIZATION, systemBandwidth_ / MathConstants::BANDWIDTH_NORMALIZATION);
+    double powerUtilization = std::min(MathConstants::MAX_POWER_UTILIZATION, (signalPower_ + MathConstants::POWER_OFFSET) / MathConstants::POWER_NORMALIZATION);
+    double processingUtilization = std::min(MathConstants::MAX_PROCESSING_UTILIZATION, processingGain_ / MathConstants::PROCESSING_NORMALIZATION);
     
-    return (bandwidthUtilization + powerUtilization + processingUtilization) / 3.0;
+    return (bandwidthUtilization + powerUtilization + processingUtilization) / MathConstants::UTILIZATION_COMPONENTS;
 }
 
 // 特定技术效果计算
@@ -453,7 +460,7 @@ double CommunicationAntiJamModel::calculateFrequencyHoppingEffectiveness() const
     if (antiJamTechnique_ != AntiJamTechnique::FREQUENCY_HOPPING) return 0.0;
     
     double hoppingGain = calculateFrequencyHoppingGain();
-    double effectiveness = hoppingGain / 30.0; // 归一化到0-1
+    double effectiveness = hoppingGain / MathConstants::HOPPING_GAIN_NORMALIZATION; // 归一化到0-1
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
@@ -465,7 +472,7 @@ double CommunicationAntiJamModel::calculateSpreadSpectrumEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::DIRECT_SEQUENCE) return 0.0;
     
     double spreadGain = calculateDirectSequenceGain();
-    double effectiveness = spreadGain / 40.0; // 归一化到0-1
+    double effectiveness = spreadGain / MathConstants::SPREAD_GAIN_NORMALIZATION; // 归一化到0-1
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
@@ -476,7 +483,7 @@ double CommunicationAntiJamModel::calculateAdaptiveFilteringEffectiveness() cons
     if (antiJamTechnique_ != AntiJamTechnique::ADAPTIVE_FILTERING) return 0.0;
     
     double filterGain = calculateAdaptiveFilteringGain();
-    double effectiveness = filterGain / 15.0; // 归一化到0-1
+    double effectiveness = filterGain / MathConstants::FILTER_GAIN_NORMALIZATION; // 归一化到0-1
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
@@ -487,7 +494,7 @@ double CommunicationAntiJamModel::calculateBeamFormingEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::BEAM_FORMING) return 0.0;
     
     double beamGain = calculateBeamFormingGain();
-    double effectiveness = beamGain / 20.0; // 归一化到0-1
+    double effectiveness = beamGain / MathConstants::BEAM_GAIN_NORMALIZATION; // 归一化到0-1
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
@@ -499,7 +506,7 @@ double CommunicationAntiJamModel::calculateDiversityEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::DIVERSITY_RECEPTION) return 0.0;
     
     double diversityGain = calculateDiversityGain();
-    double effectiveness = diversityGain / 10.0; // 归一化到0-1
+    double effectiveness = diversityGain / MathConstants::DIVERSITY_GAIN_NORMALIZATION; // 归一化到0-1
     
     return std::max(0.0, std::min(1.0, effectiveness));
 }
@@ -509,7 +516,7 @@ double CommunicationAntiJamModel::calculateDiversityEffectiveness() const {
 double CommunicationAntiJamModel::calculateErrorCorrectionEffectiveness() const {
     if (antiJamTechnique_ != AntiJamTechnique::ERROR_CORRECTION) return 0.0;
     
-    double codingEffectiveness = codingGain_ / 20.0; // 归一化到0-1
+    double codingEffectiveness = codingGain_ / MathConstants::CODING_GAIN_NORMALIZATION; // 归一化到0-1
     
     return std::max(0.0, std::min(1.0, codingEffectiveness));
 }
@@ -552,18 +559,18 @@ AntiJamTechnique CommunicationAntiJamModel::calculateOptimalTechnique() const {
 double CommunicationAntiJamModel::calculateOptimalProcessingGain() const {
     // 基于当前干扰水平计算最优处理增益
     double interferenceMargin = interferenceLevel_ - noisePower_;
-    double optimalGain = interferenceMargin + 10.0; // 10dB余量
+    double optimalGain = interferenceMargin + MathConstants::PROCESSING_GAIN_MARGIN; // 处理增益余量
     
-    return std::max(0.0, std::min(50.0, optimalGain));
+    return std::max(MathConstants::MIN_PROCESSING_GAIN, std::min(MathConstants::MAX_PROCESSING_GAIN, optimalGain));
 }
 
 double CommunicationAntiJamModel::calculateOptimalHoppingRate() const {
     if (antiJamTechnique_ != AntiJamTechnique::FREQUENCY_HOPPING) return hoppingRate_;
     
     // 最优跳频速率基于干扰机密度和系统带宽
-    double optimalRate = 1000.0 * (1.0 + jammerDensity_) * (systemBandwidth_ / 100.0);
+    double optimalRate = MathConstants::OPTIMAL_HOPPING_BASE * (MathConstants::HOPPING_RATE_BASE + jammerDensity_) * (systemBandwidth_ / MathConstants::HOPPING_BANDWIDTH_DIVISOR);
     
-    return std::max(1.0, std::min(100000.0, optimalRate));
+    return std::max(MathConstants::MIN_HOPPING_RATE, std::min(MathConstants::MAX_HOPPING_RATE, optimalRate));
 }
 
 int CommunicationAntiJamModel::calculateOptimalHoppingChannels() const {
@@ -572,15 +579,15 @@ int CommunicationAntiJamModel::calculateOptimalHoppingChannels() const {
     // 最优跳频信道数基于系统带宽和信道间隔
     int optimalChannels = static_cast<int>(systemBandwidth_ / channelSpacing_);
     
-    return std::max(2, std::min(10000, optimalChannels));
+    return std::max(MathConstants::MIN_HOPPING_CHANNELS, std::min(MathConstants::MAX_HOPPING_CHANNELS, optimalChannels));
 }
 
 // 多技术组合效果
 double CommunicationAntiJamModel::calculateCombinedTechniqueEffect(const std::vector<AntiJamTechnique>& techniques) const {
     if (techniques.empty()) return 0.0;
     
-    double combinedGain = 0.0;
-    double synergy = 1.0;
+    double combinedGain = MathConstants::COMBINED_GAIN_INITIAL;
+    double synergy = MathConstants::SYNERGY_INITIAL;
     
     for (auto technique : techniques) {
         AntiJamTechnique originalTechnique = antiJamTechnique_;
@@ -588,7 +595,7 @@ double CommunicationAntiJamModel::calculateCombinedTechniqueEffect(const std::ve
         
         double gain = calculateAntiJamGain();
         combinedGain += gain * synergy;
-        synergy *= 0.8; // 协同效应递减
+        synergy *= MathConstants::SYNERGY_DECAY_FACTOR; // 协同效应递减
         
         const_cast<CommunicationAntiJamModel*>(this)->antiJamTechnique_ = originalTechnique;
     }
@@ -600,12 +607,12 @@ std::vector<AntiJamTechnique> CommunicationAntiJamModel::getRecommendedTechnique
     std::vector<AntiJamTechnique> recommended;
     
     // 基于环境和威胁特征推荐技术组合
-    if (jammerDensity_ > 0.7) {
+    if (jammerDensity_ > MathConstants::HIGH_THREAT_THRESHOLD) {
         // 高威胁环境
         recommended.push_back(AntiJamTechnique::HYBRID_SPREAD);
         recommended.push_back(AntiJamTechnique::ADAPTIVE_FILTERING);
         recommended.push_back(AntiJamTechnique::INTERFERENCE_CANCELLATION);
-    } else if (jammerDensity_ > 0.3) {
+    } else if (jammerDensity_ > MathConstants::MEDIUM_THREAT_THRESHOLD) {
         // 中等威胁环境
         recommended.push_back(AntiJamTechnique::FREQUENCY_HOPPING);
         recommended.push_back(AntiJamTechnique::ERROR_CORRECTION);
@@ -623,7 +630,7 @@ double CommunicationAntiJamModel::predictPerformanceUnderJamming(double jammerPo
     double originalInterference = interferenceLevel_;
     const_cast<CommunicationAntiJamModel*>(this)->interferenceLevel_ = jammerPower;
     
-    double performance = 1.0 - calculateThroughputDegradation();
+    double performance = MathConstants::MAX_PERFORMANCE - calculateThroughputDegradation();
     
     const_cast<CommunicationAntiJamModel*>(this)->interferenceLevel_ = originalInterference;
     
@@ -631,10 +638,10 @@ double CommunicationAntiJamModel::predictPerformanceUnderJamming(double jammerPo
 }
 
 double CommunicationAntiJamModel::calculateRequiredAntiJamGain(double targetBER) const {
-    if (targetBER <= 0.0 || targetBER >= 0.5) return 0.0;
+    if (targetBER <= MathConstants::MIN_TARGET_BER || targetBER >= MathConstants::MAX_TARGET_BER) return MathConstants::ZERO_GAIN;
     
     // 基于目标误码率计算所需抗干扰增益
-    double requiredSnr = -10.0 * std::log10(2.0 * targetBER);
+    double requiredSnr = -MathConstants::LINEAR_TO_DB_MULTIPLIER * std::log10(MathConstants::BER_MULTIPLIER * targetBER);
     double currentSnr = signalPower_ - std::max(noisePower_, interferenceLevel_);
     double requiredGain = requiredSnr - currentSnr;
     
@@ -643,7 +650,7 @@ double CommunicationAntiJamModel::calculateRequiredAntiJamGain(double targetBER)
 
 double CommunicationAntiJamModel::calculateMaxTolerableJammerPower() const {
     double antiJamGain = calculateAntiJamGain();
-    double minRequiredSjr = 10.0; // 最小所需信干比
+    double minRequiredSjr = MathConstants::MIN_REQUIRED_SJR; // 最小所需信干比
     
     double maxJammerPower = signalPower_ + antiJamGain - minRequiredSjr;
     
@@ -713,13 +720,13 @@ std::string CommunicationAntiJamModel::getAntiJamEffectInfo() const {
     
     oss << "=== 抗干扰效果信息 ===" << std::endl;
     oss << "抗干扰增益: " << calculateAntiJamGain() << " dB" << std::endl;
-    oss << "抗干扰能力: " << calculateJammerResistance() * 100 << "%" << std::endl;
+    oss << "抗干扰能力: " << calculateJammerResistance() * MathConstants::PERCENTAGE_MULTIPLIER << "%" << std::endl;
     oss << "信干比: " << calculateSignalToJammerRatio() << " dB" << std::endl;
     oss << "有干扰误码率: " << calculateBitErrorRateWithJamming() << std::endl;
-    oss << "吞吐量下降: " << calculateThroughputDegradation() * 100 << "%" << std::endl;
-    oss << "检测概率: " << calculateDetectionProbability() * 100 << "%" << std::endl;
-    oss << "抗截获能力: " << calculateInterceptionResistance() * 100 << "%" << std::endl;
-    oss << "保护有效性: " << calculateProtectionEffectiveness() * 100 << "%" << std::endl;
+    oss << "吞吐量下降: " << calculateThroughputDegradation() * MathConstants::PERCENTAGE_MULTIPLIER << "%" << std::endl;
+    oss << "检测概率: " << calculateDetectionProbability() * MathConstants::PERCENTAGE_MULTIPLIER << "%" << std::endl;
+    oss << "抗截获能力: " << calculateInterceptionResistance() * MathConstants::PERCENTAGE_MULTIPLIER << "%" << std::endl;
+    oss << "保护有效性: " << calculateProtectionEffectiveness() * MathConstants::PERCENTAGE_MULTIPLIER << "%" << std::endl;
     
     AntiJamEffectLevel level = evaluateAntiJamEffect();
     oss << "抗干扰等级: ";
@@ -807,7 +814,7 @@ std::string CommunicationAntiJamModel::getTechniqueComparisonInfo() const {
     for (size_t i = 0; i < techniques.size(); ++i) {
         const_cast<CommunicationAntiJamModel*>(this)->antiJamTechnique_ = techniques[i];
         double effectiveness = calculateProtectionEffectiveness();
-        oss << names[i] << ": " << effectiveness * 100 << "%" << std::endl;
+        oss << names[i] << ": " << effectiveness * MathConstants::PERCENTAGE_MULTIPLIER << "%" << std::endl;
     }
     
     const_cast<CommunicationAntiJamModel*>(this)->antiJamTechnique_ = originalTechnique;
@@ -833,16 +840,16 @@ bool CommunicationAntiJamModel::runSelfTest() const {
         
         // 测试核心计算
         double gain = calculateAntiJamGain();
-        if (gain < 0.0 || gain > 100.0) return false;
+        if (gain < MathConstants::MIN_GAIN_TEST || gain > MathConstants::MAX_GAIN_TEST) return false;
         
         double resistance = calculateJammerResistance();
-        if (resistance < 0.0 || resistance > 1.0) return false;
+        if (resistance < MathConstants::MIN_RESISTANCE_TEST || resistance > MathConstants::MAX_RESISTANCE_TEST) return false;
         
         double sjr = calculateSignalToJammerRatio();
-        if (sjr < -200.0 || sjr > 200.0) return false;
+        if (sjr < MathConstants::MIN_SJR_TEST || sjr > MathConstants::MAX_SJR_TEST) return false;
         
         double ber = calculateBitErrorRateWithJamming();
-        if (ber < 0.0 || ber > 1.0) return false;
+        if (ber < MathConstants::MIN_BER_TEST || ber > MathConstants::MAX_BER_TEST) return false;
         
         // 测试效果评估
         AntiJamEffectLevel level = evaluateAntiJamEffect();

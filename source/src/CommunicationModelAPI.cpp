@@ -1,14 +1,11 @@
 #include "CommunicationModelAPI.h"
+#include "MathConstants.h"
 #include <cmath>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
 #include <chrono>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 
 #include <thread>
@@ -27,24 +24,24 @@ CommunicationModelAPI::CommunicationModelAPI()
     antiJamModel_ = std::make_unique<CommunicationAntiJamModel>();
     
     // 设置默认环境参数
-    environment_.frequency = 10000.0;
-    environment_.bandwidth = 100.0;
-    environment_.transmitPower = 30.0;
-    environment_.noisePower = -100.0;
-    environment_.distance = 10.0;
+    environment_.frequency = MathConstants::DEFAULT_FREQUENCY;
+    environment_.bandwidth = MathConstants::DEFAULT_BANDWIDTH;
+    environment_.transmitPower = MathConstants::DEFAULT_TRANSMIT_POWER;
+    environment_.noisePower = MathConstants::DEFAULT_NOISE_POWER;
+    environment_.distance = MathConstants::DEFAULT_DISTANCE;
     environment_.environmentType = EnvironmentType::OPEN_FIELD;
-    environment_.temperature = 20.0;
-    environment_.humidity = 50.0;
-    environment_.atmosphericPressure = 101.3;
+    environment_.temperature = MathConstants::DEFAULT_TEMPERATURE;
+    environment_.humidity = MathConstants::DEFAULT_HUMIDITY;
+    environment_.atmosphericPressure = MathConstants::DEFAULT_ATMOSPHERIC_PRESSURE;
     
     // 设置默认干扰环境
     jammingEnv_.isJammed = false;
     jammingEnv_.jammerType = JammerType::GAUSSIAN_NOISE;
-    jammingEnv_.jammerPower = -90.0;
-    jammingEnv_.jammerFrequency = 10000.0;
-    jammingEnv_.jammerBandwidth = 50.0;
-    jammingEnv_.jammerDistance = 20.0;
-    jammingEnv_.jammerDensity = 0.1;
+    jammingEnv_.jammerPower = MathConstants::DEFAULT_JAMMER_POWER;
+    jammingEnv_.jammerFrequency = MathConstants::DEFAULT_FREQUENCY;
+    jammingEnv_.jammerBandwidth = MathConstants::DEFAULT_JAMMER_BANDWIDTH;
+    jammingEnv_.jammerDistance = MathConstants::DEFAULT_JAMMER_DISTANCE;
+    jammingEnv_.jammerDensity = MathConstants::DEFAULT_JAMMER_DENSITY;
     
     updateModelsFromEnvironment();
 }
@@ -108,7 +105,7 @@ void CommunicationModelAPI::updateModelsFromEnvironment() {
 /// @details 总信号强度 = 发射功率 - 路径损耗 - 环境损耗 - 频率因子
 /// @return 总信号强度(dBm)
 double CommunicationModelAPI::calculateOverallSignalStrength() const {
-    if (!signalModel_ || !distanceModel_) return -150.0;
+    if (!signalModel_ || !distanceModel_) return MathConstants::DEFAULT_SIGNAL_STRENGTH;
     
     // 基础信号强度
     double baseSignal = environment_.transmitPower;
@@ -123,7 +120,7 @@ double CommunicationModelAPI::calculateOverallSignalStrength() const {
 /// @details 信噪比 = 总信号强度 - 环境噪声功率
 /// @return 信噪比(dB)
 double CommunicationModelAPI::calculateOverallSNR() const {
-    if (!receiveModel_) return -50.0;
+    if (!receiveModel_) return MathConstants::DEFAULT_SNR;
     
     double signalStrength = calculateOverallSignalStrength();
     double snr = signalStrength - environment_.noisePower;
@@ -150,10 +147,10 @@ double CommunicationModelAPI::calculateOverallBER() const {
     double snr = calculateOverallSNR();
     
     // 简化的BPSK误码率计算
-    double linearSnr = std::pow(10.0, snr / 10.0);
-    double ber = 0.5 * std::erfc(std::sqrt(linearSnr));
+    double linearSnr = std::pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, snr / MathConstants::LINEAR_TO_DB_MULTIPLIER);
+    double ber = MathConstants::BER_COEFFICIENT * std::erfc(std::sqrt(linearSnr));
     
-    return std::max(1e-12, std::min(0.5, ber));
+    return std::max(MathConstants::MIN_BER, std::min(MathConstants::MAX_BER, ber));
 }
 
 /// @brief 计算吞吐量
@@ -164,11 +161,11 @@ double CommunicationModelAPI::calculateThroughput() const {
     double ber = calculateOverallBER();
     
     // 基于香农定理的理论容量
-    double theoreticalCapacity = environment_.bandwidth * std::log2(1.0 + std::pow(10.0, snr / 10.0));
+    double theoreticalCapacity = environment_.bandwidth * std::log2(MathConstants::SHANNON_BASE + std::pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, snr / MathConstants::LINEAR_TO_DB_MULTIPLIER));
     
     // 考虑误码率的影响
-    double efficiency = 1.0 - 10.0 * ber; // 简化的效率模型
-    efficiency = std::max(0.0, std::min(1.0, efficiency));
+    double efficiency = MathConstants::EFFICIENCY_BASE - MathConstants::BER_EFFICIENCY_FACTOR * ber; // 简化的效率模型
+    efficiency = std::max(MathConstants::MIN_EFFICIENCY, std::min(MathConstants::MAX_EFFICIENCY, efficiency));
     
     return theoreticalCapacity * efficiency;
 }
@@ -177,14 +174,14 @@ double CommunicationModelAPI::calculateThroughput() const {
 /// @details 延迟 = 距离 / 光速 + 处理延迟 + 重传延迟
 /// @return 延迟 (ms)
 double CommunicationModelAPI::calculateLatency() const {
-    double baseLatency = environment_.distance / 300.0; // 光速传播延迟 (ms)
+    double baseLatency = environment_.distance / MathConstants::SPEED_OF_LIGHT; // 光速传播延迟 (ms)
     
     // 处理延迟
-    double processingDelay = 1.0; // 基础处理延迟 1ms
+    double processingDelay = MathConstants::DEFAULT_PROCESSING_DELAY; // 基础处理延迟 1ms
     
     // 重传延迟（基于误码率）
     double ber = calculateOverallBER();
-    double retransmissionDelay = ber * 100.0; // 简化模型
+    double retransmissionDelay = ber * MathConstants::RETRANSMISSION_DELAY_FACTOR; // 简化模型
     
     return baseLatency + processingDelay + retransmissionDelay;
 }
@@ -196,12 +193,12 @@ double CommunicationModelAPI::calculatePacketLossRate() const {
     double ber = calculateOverallBER();
     
     // 假设数据包长度为1000字节
-    int packetLengthBits = 8000;
+    int packetLengthBits = MathConstants::PACKET_LENGTH_BITS;
     
     // 数据包错误率 = 1 - (1 - BER)^数据包长度
-    double packetErrorRate = 1.0 - std::pow(1.0 - ber, packetLengthBits);
+    double packetErrorRate = MathConstants::UNITY - std::pow(MathConstants::UNITY - ber, packetLengthBits);
     
-    return std::max(0.0, std::min(1.0, packetErrorRate));
+    return std::max(MathConstants::ZERO, std::min(MathConstants::UNITY, packetErrorRate));
 }
 /// @return 通信质量
 CommunicationQuality CommunicationModelAPI::assessCommunicationQuality() const {
@@ -212,25 +209,25 @@ CommunicationQuality CommunicationModelAPI::assessCommunicationQuality() const {
     // 综合评估通信质量
     int score = 0;
     
-    // SNR评分
-    if (snr > 20.0) score += 2;
-    else if (snr > 10.0) score += 1;
-    else if (snr < 0.0) score -= 1;
+    // 信噪比评分
+    if (snr > MathConstants::HIGH_SNR_THRESHOLD) score += 2;
+    else if (snr > MathConstants::MEDIUM_SNR_THRESHOLD) score += 1;
+    else if (snr < MathConstants::LOW_SNR_THRESHOLD) score -= 1;
     
-    // BER评分
-    if (ber < 1e-6) score += 2;
-    else if (ber < 1e-4) score += 1;
-    else if (ber > 1e-2) score -= 1;
+    // 误码率评分
+    if (ber < MathConstants::EXCELLENT_BER_THRESHOLD) score += 2;
+    else if (ber < MathConstants::GOOD_BER_THRESHOLD) score += 1;
+    else if (ber > MathConstants::POOR_BER_THRESHOLD_API) score -= 1;
     
     // 丢包率评分
-    if (packetLoss < 0.01) score += 1;
-    else if (packetLoss > 0.1) score -= 1;
+    if (packetLoss < MathConstants::LOW_PACKET_LOSS_THRESHOLD) score += 1;
+    else if (packetLoss > MathConstants::HIGH_PACKET_LOSS_THRESHOLD) score -= 1;
     
-    // 映射到质量等级
-    if (score >= 4) return CommunicationQuality::EXCELLENT;
-    else if (score >= 2) return CommunicationQuality::GOOD;
-    else if (score >= 0) return CommunicationQuality::FAIR;
-    else if (score >= -2) return CommunicationQuality::POOR;
+    // 根据总分确定质量等级
+    if (score >= MathConstants::EXCELLENT_QUALITY_SCORE) return CommunicationQuality::EXCELLENT;
+    else if (score >= MathConstants::GOOD_QUALITY_SCORE) return CommunicationQuality::GOOD;
+    else if (score >= MathConstants::FAIR_QUALITY_SCORE) return CommunicationQuality::FAIR;
+    else if (score >= MathConstants::POOR_QUALITY_SCORE) return CommunicationQuality::POOR;
     else return CommunicationQuality::FAILED;
 }
 
@@ -284,28 +281,28 @@ bool CommunicationModelAPI::setJammingEnvironment(const JammingEnvironment& jamm
 }
 
 bool CommunicationModelAPI::setFrequency(double frequency) {
-    if (frequency < 1.0 || frequency > 30000.0) return false;
+    if (frequency < MathConstants::FREQUENCY_VALIDATION_MIN || frequency > MathConstants::FREQUENCY_VALIDATION_MAX) return false;
     environment_.frequency = frequency;
     updateModelsFromEnvironment();
     return true;
 }
 
 bool CommunicationModelAPI::setBandwidth(double bandwidth) {
-    if (bandwidth < 0.1 || bandwidth > 10000.0) return false;
+    if (bandwidth < MathConstants::BANDWIDTH_VALIDATION_MIN || bandwidth > MathConstants::BANDWIDTH_VALIDATION_MAX) return false;
     environment_.bandwidth = bandwidth;
     updateModelsFromEnvironment();
     return true;
 }
 
 bool CommunicationModelAPI::setTransmitPower(double power) {
-    if (power < -50.0 || power > 50.0) return false;
+    if (power < MathConstants::POWER_VALIDATION_MIN || power > MathConstants::POWER_VALIDATION_MAX) return false;
     environment_.transmitPower = power;
     updateModelsFromEnvironment();
     return true;
 }
 
 bool CommunicationModelAPI::setDistance(double distance) {
-    if (distance < 0.001 || distance > 1000.0) return false;
+    if (distance < MathConstants::DISTANCE_VALIDATION_MIN || distance > MathConstants::DISTANCE_VALIDATION_MAX) return false;
     environment_.distance = distance;
     updateModelsFromEnvironment();
     return true;
@@ -334,9 +331,9 @@ CommunicationLinkStatus CommunicationModelAPI::calculateLinkStatus() const {
     status.quality = assessCommunicationQuality();
     
     // 判断是否连接
-    status.isConnected = (status.signalToNoiseRatio > 0.0 && 
-                         status.bitErrorRate < 0.1 && 
-                         status.packetLossRate < 0.5);
+    status.isConnected = (status.signalToNoiseRatio > MathConstants::LOW_SNR_THRESHOLD && 
+                         status.bitErrorRate < MathConstants::CONNECTION_BER_THRESHOLD && 
+                         status.packetLossRate < MathConstants::CONNECTION_PACKET_LOSS_THRESHOLD);
     
     // 生成状态描述
     std::ostringstream oss;
@@ -367,19 +364,19 @@ CommunicationPerformance CommunicationModelAPI::calculatePerformance() const {
     performance.maxDataRate = calculateThroughput();
     
     // 功率效率 (bps/W)
-    double powerWatts = std::pow(10.0, (environment_.transmitPower - 30.0) / 10.0);
-    performance.powerEfficiency = (performance.maxDataRate * 1e6) / powerWatts;
+    double powerWatts = std::pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, (environment_.transmitPower - MathConstants::POWER_CONVERSION_OFFSET) / MathConstants::LINEAR_TO_DB_MULTIPLIER);
+    performance.powerEfficiency = (performance.maxDataRate * MathConstants::MEGA_MULTIPLIER) / powerWatts;
     
     // 频谱效率 (bps/Hz)
-    performance.spectralEfficiency = (performance.maxDataRate * 1e6) / (environment_.bandwidth * 1e6);
+    performance.spectralEfficiency = (performance.maxDataRate * MathConstants::MEGA_MULTIPLIER) / (environment_.bandwidth * MathConstants::MEGA_MULTIPLIER);
     
     // 可靠性（基于误码率）
     double ber = calculateOverallBER();
-    performance.reliability = 1.0 - std::min(1.0, ber * 1000.0);
+    performance.reliability = MathConstants::UNITY - std::min(MathConstants::UNITY, ber * MathConstants::RELIABILITY_MULTIPLIER);
     
     // 可用性（基于信噪比）
     double snr = calculateOverallSNR();
-    performance.availability = 1.0 / (1.0 + std::exp(-(snr - 5.0) / 2.0));
+    performance.availability = MathConstants::UNITY / (MathConstants::UNITY + std::exp(-(snr - MathConstants::AVAILABILITY_SNR_OFFSET) / MathConstants::AVAILABILITY_DIVISOR));
     
     // 抗干扰能力
     if (antiJamModel_) {

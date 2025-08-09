@@ -1,4 +1,5 @@
 #include "EnvironmentLossConfigManager.h"
+#include "MathConstants.h"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -96,22 +97,22 @@ size_t EnvironmentLossConfigManager::getConfigCount() {
 /// @return 如果配置有效返回true，否则返回false
 bool EnvironmentLossConfigManager::validateConfig(const EnvironmentLossConfig& config) {
     // 验证路径损耗指数 (通常在1.5到6之间)
-    if (config.pathLossExponent < 1.5 || config.pathLossExponent > 6.0) {
+    if (config.pathLossExponent < MathConstants::MIN_PATH_LOSS_EXPONENT || config.pathLossExponent > MathConstants::MAX_PATH_LOSS_EXPONENT) {
         return false;
     }
     
     // 验证环境损耗 (通常在0到50dB之间)
-    if (config.environmentLoss < 0.0 || config.environmentLoss > 50.0) {
+    if (config.environmentLoss < MathConstants::MIN_ENVIRONMENT_LOSS || config.environmentLoss > MathConstants::MAX_ENVIRONMENT_LOSS) {
         return false;
     }
     
     // 验证阴影衰落标准差 (通常在0到20dB之间)
-    if (config.shadowingStdDev < 0.0 || config.shadowingStdDev > 20.0) {
+    if (config.shadowingStdDev < MathConstants::MIN_SHADOWING_STD_DEV || config.shadowingStdDev > MathConstants::MAX_SHADOWING_STD_DEV) {
         return false;
     }
     
     // 验证频率因子 (通常在0.5到3.0之间)
-    if (config.frequencyFactor < 0.5 || config.frequencyFactor > 3.0) {
+    if (config.frequencyFactor < MathConstants::MIN_FREQUENCY_FACTOR || config.frequencyFactor > MathConstants::MAX_FREQUENCY_FACTOR) {
         return false;
     }
     
@@ -126,10 +127,10 @@ bool EnvironmentLossConfigManager::isAttenuationValid(double attenuation, Enviro
     const EnvironmentLossConfig& config = getConfig(envType);
     
     // 根据环境损耗计算期望的衰减系数
-    double expectedAttenuation = 1.0 + (config.environmentLoss / 10.0);
+    double expectedAttenuation = MathConstants::UNITY + (config.environmentLoss / MathConstants::ENVIRONMENT_LOSS_DIVISOR);
     
     // 允许±0.5的偏差范围
-    double tolerance = 0.5;
+    double tolerance = MathConstants::TOLERANCE_VALUE;
     return attenuation >= (expectedAttenuation - tolerance) && 
            attenuation <= (expectedAttenuation + tolerance);
 }
@@ -268,7 +269,7 @@ double EnvironmentLossConfigManager::calculateEnvironmentPathLoss(double distanc
     // 计算环境路径损耗指数的影响
     // 修正公式: EnvironmentPathLoss = 10*n*log10(d) - 10*2*log10(d)
     // 其中 n 是环境路径损耗指数，2 是自由空间的路径损耗指数
-    double environmentPathLoss = 10.0 * (config.pathLossExponent - 2.0) * std::log10(distance_km);
+    double environmentPathLoss = MathConstants::LINEAR_TO_DB_MULTIPLIER * (config.pathLossExponent - MathConstants::FREE_SPACE_PATH_LOSS_EXPONENT) * std::log10(distance_km);
     
     return environmentPathLoss;
 }
@@ -284,7 +285,7 @@ double EnvironmentLossConfigManager::calculateFrequencyFactorLoss(double frequen
     // 计算频率因子损耗
     // 公式: FrequencyLoss = frequencyFactor * log10(f/1000) * 2.0
     // 其中 f 是频率(MHz)，除以1000转换为GHz
-    double frequencyLoss = config.frequencyFactor * std::log10(frequency_MHz / 1000.0) * 2.0;
+    double frequencyLoss = config.frequencyFactor * std::log10(frequency_MHz / MathConstants::FREQUENCY_CONVERSION_FACTOR) * MathConstants::FREQ_FACTOR_MULTIPLIER;
     
     return frequencyLoss;
 }

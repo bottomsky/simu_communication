@@ -1,16 +1,17 @@
 #include "SignalTransmissionModel.h"
+#include "MathConstants.h"
 #include <string>
 #include <sstream>
 
 // 频段频率范围校验实现
-bool SignalTransmissionModel::isFrequencyInBand(double freqKHz, FrequencyBand band) const {
-    switch (band) {
+bool SignalTransmissionModel::isFrequencyInBand(double freqKHz, FrequencyBand bandType) const {
+    switch (bandType) {
         case FrequencyBand::SHORT_WAVE:
-            return (freqKHz >= 1500.0 && freqKHz <= 30000.0);  // 1.5-30MHz
+            return (freqKHz >= MathConstants::HF_MIN_FREQUENCY && freqKHz <= MathConstants::HF_MAX_FREQUENCY);  // 1.5-30MHz
         case FrequencyBand::ULTRA_SHORT_WAVE:
-            return (freqKHz >= 30000.0 && freqKHz <= 300000.0);  // 30-300MHz
+            return (freqKHz >= MathConstants::VHF_MIN_FREQUENCY && freqKHz <= MathConstants::VHF_MAX_FREQUENCY);  // 30-300MHz
         case FrequencyBand::MICROWAVE:
-            return (freqKHz >= 300000.0 && freqKHz <= 30000000.0);  // 300MHz-30GHz
+            return (freqKHz >= MathConstants::UHF_MIN_FREQUENCY && freqKHz <= MathConstants::UHF_MAX_FREQUENCY);  // 300MHz-30GHz
         default:
             return false;
     }
@@ -50,14 +51,14 @@ void SignalTransmissionModel::setFrequencyBand(FrequencyBand newBand) {
         // 若原频率不符合新频段，自动调整到新频段中间值
         switch (newBand) {
             case FrequencyBand::SHORT_WAVE:
-                centerFrequency = 15750.0;  // 15.75MHz
-                break;
-            case FrequencyBand::ULTRA_SHORT_WAVE:
-                centerFrequency = 165000.0;  // 165MHz
-                break;
-            case FrequencyBand::MICROWAVE:
-                centerFrequency = 15150000.0;  // 15.15GHz
-                break;
+            centerFrequency = MathConstants::DEFAULT_HF_CENTER_FREQ;  // 15.75MHz
+            break;
+        case FrequencyBand::ULTRA_SHORT_WAVE:
+            centerFrequency = MathConstants::DEFAULT_VHF_CENTER_FREQ;  // 165MHz
+            break;
+        case FrequencyBand::MICROWAVE:
+            centerFrequency = MathConstants::DEFAULT_UHF_CENTER_FREQ;  // 15.15GHz
+            break;
         }
     }
 }
@@ -83,7 +84,7 @@ bool SignalTransmissionModel::setSignalBandwidth(double bandwidthKHz) {
 }
 
 bool SignalTransmissionModel::setTransmitPower(double powerW) {
-    if (powerW > 0 && powerW <= 100.0) {  // 限制在0-100W(符合车载/便携设备范围)
+    if (powerW > 0 && powerW <= MathConstants::MAX_POWER_LIMIT) {  // 限制在0-100W(符合车载/便携设备范围)
         transmitPower = powerW;
         return true;
     }
@@ -133,11 +134,11 @@ std::string SignalTransmissionModel::getParameterInfo() const {
     
     // 中心频率
     ss << "  中心频率: " << centerFrequency << " kHz";
-    if (centerFrequency >= 1000000) {
-        ss << " (" << (centerFrequency / 1000000.0) << " GHz)";
-    } else if (centerFrequency >= 1000) {
-        ss << " (" << (centerFrequency / 1000.0) << " MHz)";
-    }
+    if (centerFrequency >= MathConstants::FREQUENCY_DISPLAY_THRESHOLD_MHZ) {
+            ss << " (" << (centerFrequency / MathConstants::FREQUENCY_DISPLAY_THRESHOLD_MHZ) << " GHz)";
+        } else if (centerFrequency >= MathConstants::FREQUENCY_DISPLAY_THRESHOLD_KHZ) {
+            ss << " (" << (centerFrequency / MathConstants::FREQUENCY_DISPLAY_THRESHOLD_KHZ) << " MHz)";
+        }
     ss << "\n";
     
     // 调制方式
@@ -163,16 +164,16 @@ std::string SignalTransmissionModel::getParameterInfo() const {
     
     // 信号带宽
     ss << "  信号带宽: " << signalBandwidth << " kHz";
-    if (signalBandwidth >= 1000) {
-        ss << " (" << (signalBandwidth / 1000.0) << " MHz)";
-    }
+    if (signalBandwidth >= MathConstants::BANDWIDTH_DISPLAY_THRESHOLD) {
+            ss << " (" << (signalBandwidth / MathConstants::BANDWIDTH_DISPLAY_THRESHOLD) << " MHz)";
+        }
     ss << "\n";
     
     // 发射功率
     ss << "  发射功率: " << transmitPower << " W";
-    if (transmitPower >= 1000) {
-        ss << " (" << (transmitPower / 1000.0) << " kW)";
-    }
+    if (transmitPower >= MathConstants::POWER_DISPLAY_THRESHOLD) {
+            ss << " (" << (transmitPower / MathConstants::POWER_DISPLAY_THRESHOLD) << " kW)";
+        }
     ss << "\n";
     
     return ss.str();
