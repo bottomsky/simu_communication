@@ -32,7 +32,7 @@ private:
 public:
     // 构造函数(默认参数为典型值)
     SignalTransmissionModel(
-        FrequencyBand band = FrequencyBand::ULTRA_SHORT_WAVE,
+        FrequencyBand band = FrequencyBand::SHORT_WAVE,
         double centerFreqKHz = 10000.0,  // 10MHz
         ModulationType modulation = ModulationType::FM,
         double bandwidthKHz = 25.0,

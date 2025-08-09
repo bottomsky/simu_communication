@@ -1,5 +1,5 @@
-#include "source/header/CommunicationAntiJamModel.h"
-#include "source/header/CommunicationAntiJamParameterConfig.h"
+#include "../../source/header/CommunicationAntiJamModel.h"
+#include "../../source/header/CommunicationAntiJamParameterConfig.h"
 #include <iostream>
 #include <iomanip>
 

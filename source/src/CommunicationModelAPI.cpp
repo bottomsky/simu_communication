@@ -503,7 +503,13 @@ CommunicationEnvironment CommunicationModelAPI::optimizeForPowerEfficiency() con
     
     // 降低功率到最小可接受水平
     double minSNR = 10.0; // 最小信噪比要求
-    optimized.transmitPower = optimized.noisePower + minSNR + 3.0; // 3dB余量
+    double minTransmitPower = -45.0; // 最小发射功率限制 (dBm)
+    
+    // 计算基于SNR的最小功率需求
+    double calculatedPower = optimized.noisePower + minSNR + 3.0; // 3dB余量
+    
+    // 确保功率不低于最小限制
+    optimized.transmitPower = std::max(calculatedPower, minTransmitPower);
     
     // 选择功率效率最高的频率
     optimized.frequency = calculateOptimalFrequency();

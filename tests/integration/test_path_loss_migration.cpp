@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
-#include "source/header/CommunicationModelAPI.h"
-#include "source/header/CommunicationDistanceModel.h"
+#include "../../source/header/CommunicationModelAPI.h"
+#include "../../source/header/CommunicationDistanceModel.h"
 
 int main() {
     std::cout << "============================================================" << std::endl;
@@ -17,7 +17,7 @@ int main() {
         env.frequency = 2400.0;        // 2.4 GHz
         env.transmitPower = 30.0;      // 30 dBm
         env.distance = 5.0;            // 5 km
-        env.environmentType = EnvironmentType::URBAN;
+        env.environmentType = EnvironmentType::URBAN_AREA;
         env.noisePower = -100.0;       // -100 dBm
         
         api.setEnvironment(env);
@@ -30,8 +30,9 @@ int main() {
         
         // 测试1: 验证API层的路径损耗计算
         std::cout << "--- 测试1: API层路径损耗计算 ---" << std::endl;
-        double signalStrength = api.calculateOverallSignalStrength();
-        std::cout << "总信号强度: " << std::fixed << std::setprecision(2) << signalStrength << " dBm" << std::endl;
+        CommunicationLinkStatus linkStatus = api.calculateLinkStatus();
+        std::cout << "总信号强度: " << std::fixed << std::setprecision(2) << linkStatus.signalStrength << " dBm" << std::endl;
+        std::cout << "信噪比: " << std::fixed << std::setprecision(2) << linkStatus.signalToNoiseRatio << " dB" << std::endl;
         
         double requiredPower = api.calculateRequiredPower(10.0); // 10km距离
         std::cout << "10km距离所需功率: " << std::fixed << std::setprecision(2) << requiredPower << " dBm" << std::endl;
@@ -39,7 +40,7 @@ int main() {
         
         // 测试2: 直接测试距离模型的路径损耗计算
         std::cout << "--- 测试2: 距离模型路径损耗计算 ---" << std::endl;
-        CommunicationDistanceModel distanceModel(50.0, EnvironmentType::URBAN, 2.0, -100.0, 10.0, 30.0);
+        CommunicationDistanceModel distanceModel(50.0, EnvironmentType::URBAN_AREA, 2.0, -100.0, 10.0, 30.0);
         
         double freeSpacePathLoss = distanceModel.calculateFreeSpacePathLoss(5.0, 2400.0);
         std::cout << "自由空间路径损耗 (5km, 2.4GHz): " << std::fixed << std::setprecision(2) << freeSpacePathLoss << " dB" << std::endl;

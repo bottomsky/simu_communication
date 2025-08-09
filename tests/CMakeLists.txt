@@ -84,6 +84,79 @@ target_link_libraries(test_communication_receive
     gtest
 )
 
+# 新增的单元测试
+add_executable(test_communication_anti_jam
+    unit/test_communication_anti_jam_model.cpp
+)
+
+target_link_libraries(test_communication_anti_jam
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+add_executable(test_communication_jammer
+    unit/test_communication_jammer_model.cpp
+)
+
+target_link_libraries(test_communication_jammer
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+add_executable(test_communication_model_api
+    unit/test_communication_model_api.cpp
+)
+
+target_link_libraries(test_communication_model_api
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+# 参数配置测试
+add_executable(test_anti_jam_parameter_config
+    unit/test_anti_jam_parameter_config.cpp
+)
+
+target_link_libraries(test_anti_jam_parameter_config
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+add_executable(test_jammer_parameter_config
+    unit/test_jammer_parameter_config.cpp
+)
+
+target_link_libraries(test_jammer_parameter_config
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+add_executable(test_receive_parameter_config
+    unit/test_receive_parameter_config.cpp
+)
+
+target_link_libraries(test_receive_parameter_config
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+# 简单测试
+add_executable(simple_receive_test
+    unit/simple_receive_test.cpp
+)
+
+target_link_libraries(simple_receive_test
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
 # 集成测试
 add_executable(test_integration
     integration/test_basic_integration.cpp
@@ -95,13 +168,66 @@ target_link_libraries(test_integration
     gtest
 )
 
+# 迁移验证测试
+add_executable(test_environment_loss_migration
+    integration/test_environment_loss_migration.cpp
+)
+
+target_link_libraries(test_environment_loss_migration
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+add_executable(test_path_loss_migration
+    integration/test_path_loss_migration.cpp
+)
+
+target_link_libraries(test_path_loss_migration
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
+add_executable(test_free_space_path_loss_refactor
+    integration/test_free_space_path_loss_refactor.cpp
+)
+
+target_link_libraries(test_free_space_path_loss_refactor
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
 # 注册测试
+# 基础单元测试
 add_test(NAME SignalTransmissionModelTest COMMAND test_signal_transmission)
 add_test(NAME CommunicationDistanceModelTest COMMAND test_communication_distance)
 add_test(NAME CommunicationReceiveModelTest COMMAND test_communication_receive)
+
+# 新增单元测试
+add_test(NAME CommunicationAntiJamModelTest COMMAND test_communication_anti_jam)
+add_test(NAME CommunicationJammerModelTest COMMAND test_communication_jammer)
+add_test(NAME CommunicationModelApiTest COMMAND test_communication_model_api)
+
+# 参数配置测试
+add_test(NAME AntiJamParameterConfigTest COMMAND test_anti_jam_parameter_config)
+add_test(NAME JammerParameterConfigTest COMMAND test_jammer_parameter_config)
+add_test(NAME ReceiveParameterConfigTest COMMAND test_receive_parameter_config)
+
+# 简单测试
+add_test(NAME SimpleReceiveTest COMMAND simple_receive_test)
+
+# 集成测试
 add_test(NAME BasicIntegrationTest COMMAND test_integration)
 
+# 迁移验证测试
+add_test(NAME EnvironmentLossMigrationTest COMMAND test_environment_loss_migration)
+add_test(NAME PathLossMigrationTest COMMAND test_path_loss_migration)
+add_test(NAME FreeSpacePathLossRefactorTest COMMAND test_free_space_path_loss_refactor)
+
 # 设置测试属性
+# 基础单元测试属性
 set_tests_properties(SignalTransmissionModelTest PROPERTIES
     TIMEOUT 30
     LABELS "unit;basic"
@@ -117,28 +243,130 @@ set_tests_properties(CommunicationReceiveModelTest PROPERTIES
     LABELS "unit;basic"
 )
 
+# 新增单元测试属性
+set_tests_properties(CommunicationAntiJamModelTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;antijam"
+)
+
+set_tests_properties(CommunicationJammerModelTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;jammer"
+)
+
+set_tests_properties(CommunicationModelApiTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;api"
+)
+
+# 参数配置测试属性
+set_tests_properties(AntiJamParameterConfigTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;config;antijam"
+)
+
+set_tests_properties(JammerParameterConfigTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;config;jammer"
+)
+
+set_tests_properties(ReceiveParameterConfigTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;config;receive"
+)
+
+# 简单测试属性
+set_tests_properties(SimpleReceiveTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;simple"
+)
+
+# 集成测试属性
 set_tests_properties(BasicIntegrationTest PROPERTIES
     TIMEOUT 60
     LABELS "integration"
 )
 
+# 迁移验证测试属性
+set_tests_properties(EnvironmentLossMigrationTest PROPERTIES
+    TIMEOUT 60
+    LABELS "integration;migration"
+)
+
+set_tests_properties(PathLossMigrationTest PROPERTIES
+    TIMEOUT 60
+    LABELS "integration;migration"
+)
+
+set_tests_properties(FreeSpacePathLossRefactorTest PROPERTIES
+    TIMEOUT 60
+    LABELS "integration;refactor"
+)
+
 # 添加自定义目标用于运行所有测试
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_signal_transmission test_communication_distance test_communication_receive test_integration
+    DEPENDS 
+        test_signal_transmission 
+        test_communication_distance 
+        test_communication_receive
+        test_communication_anti_jam
+        test_communication_jammer
+        test_communication_model_api
+        test_anti_jam_parameter_config
+        test_jammer_parameter_config
+        test_receive_parameter_config
+        simple_receive_test
+        test_integration
+        test_environment_loss_migration
+        test_path_loss_migration
+        test_free_space_path_loss_refactor
     COMMENT "运行所有测试"
 )
 
 # 添加自定义目标用于运行单元测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose -L unit
-    DEPENDS test_signal_transmission test_communication_distance test_communication_receive
+    DEPENDS 
+        test_signal_transmission 
+        test_communication_distance 
+        test_communication_receive
+        test_communication_anti_jam
+        test_communication_jammer
+        test_communication_model_api
+        test_anti_jam_parameter_config
+        test_jammer_parameter_config
+        test_receive_parameter_config
+        simple_receive_test
     COMMENT "运行单元测试"
 )
 
 # 添加自定义目标用于运行集成测试
 add_custom_target(run_integration_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose -L integration
-    DEPENDS test_integration
+    DEPENDS 
+        test_integration
+        test_environment_loss_migration
+        test_path_loss_migration
+        test_free_space_path_loss_refactor
     COMMENT "运行集成测试"
+)
+
+# 添加自定义目标用于运行配置测试
+add_custom_target(run_config_tests
+    COMMAND ${CMAKE_CTEST_COMMAND} --verbose -L config
+    DEPENDS 
+        test_anti_jam_parameter_config
+        test_jammer_parameter_config
+        test_receive_parameter_config
+    COMMENT "运行配置测试"
+)
+
+# 添加自定义目标用于运行迁移测试
+add_custom_target(run_migration_tests
+    COMMAND ${CMAKE_CTEST_COMMAND} --verbose -L migration
+    DEPENDS 
+        test_environment_loss_migration
+        test_path_loss_migration
+    COMMENT "运行迁移测试"
 )

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
-#include "source/header/CommunicationJammerParameterConfig.h"
-#include "source/header/CommunicationJammerModel.h"
+#include "../../source/header/CommunicationJammerParameterConfig.h"
+#include "../../source/header/CommunicationJammerModel.h"
 
 int main() {
     std::cout << "=== 通信干扰模型参数配置重构验证 ===" << std::endl;

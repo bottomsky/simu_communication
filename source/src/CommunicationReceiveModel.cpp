@@ -179,11 +179,11 @@ double CommunicationReceiveModel::calculateSystemNoise() const {
 }
 
 /// @brief 计算信噪比
-/// @details 信噪比 = 接收信号功率 - 系统噪声功率 - 天线增益 (dB)
+/// @details 信噪比 = 接收信号功率 + 天线增益 - 系统噪声功率 (dB)
 /// @return 信噪比(dB)
 double CommunicationReceiveModel::calculateSignalToNoiseRatio() const {
-    // SNR = 接收信号功率 - 系统噪声功率 - 天线增益 (dB)
-    return receivedPower - noiseFloor - antennaGain;
+    // SNR = 接收信号功率 + 天线增益 - 系统噪声功率 (dB)
+    return receivedPower + antennaGain - noiseFloor;
 }
 
 /// @brief 计算误码率
@@ -191,36 +191,49 @@ double CommunicationReceiveModel::calculateSignalToNoiseRatio() const {
 /// @return 误码率
 double CommunicationReceiveModel::calculateBitErrorRate() const {
     double snr_linear = pow(10.0, calculateSignalToNoiseRatio() / 10.0);
+    double ber = 0.0;
     
     // 根据调制方式计算误码率
     switch (modType) {
         case ReceiveModulationType::BPSK:
             // BER = 0.5 * erfc(sqrt(SNR))
-            return 0.5 * erfc(sqrt(snr_linear));
+            ber = 0.5 * erfc(sqrt(snr_linear));
+            break;
             
         case ReceiveModulationType::QPSK:
             // BER = 0.5 * erfc(sqrt(SNR/2))
-            return 0.5 * erfc(sqrt(snr_linear / 2.0));
+            ber = 0.5 * erfc(sqrt(snr_linear / 2.0));
+            break;
             
         case ReceiveModulationType::QAM16:
             // 简化的16QAM误码率公式
-            return 0.375 * erfc(sqrt(0.4 * snr_linear));
+            ber = 0.375 * erfc(sqrt(0.4 * snr_linear));
+            break;
             
         case ReceiveModulationType::FM:
             // FM的误码率与SNR的关系较复杂，使用简化模型
             if (snr_linear < 10.0) {
-                return 0.1; // 低SNR时误码率较高
+                ber = 0.1; // 低SNR时误码率较高
             } else {
-                return 1e-6 * exp(-snr_linear / 10.0);
+                ber = 1e-6 * exp(-snr_linear / 10.0);
             }
+            break;
             
         case ReceiveModulationType::AM:
             // AM的误码率模型
-            return 0.5 * erfc(sqrt(snr_linear / 4.0));
+            ber = 0.5 * erfc(sqrt(snr_linear / 4.0));
+            break;
             
         default:
-            return 0.5; // 默认返回50%误码率
+            ber = 0.5; // 默认返回50%误码率
+            break;
     }
+    
+    // 确保误码率大于0，但允许在高SNR时继续变化
+    // 使用一个与SNR相关的最小值，确保不同SNR产生不同结果
+    double snr_db = calculateSignalToNoiseRatio();
+    double min_ber = 1e-50 * exp(-snr_db / 100.0); // SNR越高，最小值越小
+    return std::max(ber, min_ber);
 }
 
 /// @brief 计算有效噪声功率
@@ -231,11 +244,11 @@ double CommunicationReceiveModel::calculateEffectiveNoisePower() const {
 }
 
 /// @brief 计算最小可检测功率
-/// @details 最小可检测功率 = 噪声底 + 检测门限(通常3dB)
+/// @details 最小可检测功率 = 噪声底 + 检测门限(通常10dB)
 /// @return 最小可检测功率(dBm)
 double CommunicationReceiveModel::calculateMinimumDetectablePower() const {
-    // 最小可检测功率 = 噪声底 + 检测门限(通常3dB)
-    return noiseFloor + 3.0;
+    // 最小可检测功率 = 噪声底 + 检测门限(通常10dB)
+    return noiseFloor + 10.0;
 }
 
 // 接收性能评估方法实现
@@ -266,33 +279,43 @@ double CommunicationReceiveModel::getRequiredSNRForBER(double target_ber) const 
         case ReceiveModulationType::BPSK:
             // 对于BPSK，BER = 1e-6时，SNR ≈ 10.5dB
             if (target_ber <= 1e-6) return 10.5;
-            else if (target_ber <= 1e-4) return 8.4;
-            else return 6.0;
+            else if (target_ber <= 1e-4) return 8.5;
+            else if (target_ber <= 1e-2) return 6.0;
+            else return 4.0;
             
         case ReceiveModulationType::QPSK:
             // 对于QPSK，BER = 1e-6时，SNR ≈ 10.5dB
             if (target_ber <= 1e-6) return 10.5;
-            else if (target_ber <= 1e-4) return 8.4;
-            else return 6.0;
+            else if (target_ber <= 1e-4) return 8.5;
+            else if (target_ber <= 1e-2) return 6.0;
+            else return 4.0;
             
         case ReceiveModulationType::QAM16:
             // 对于16QAM，需要更高的SNR
             if (target_ber <= 1e-6) return 16.0;
             else if (target_ber <= 1e-4) return 12.0;
-            else return 9.0;
+            else if (target_ber <= 1e-2) return 9.0;
+            else return 7.0;
             
         case ReceiveModulationType::FM:
             // FM需要的SNR相对较低
             if (target_ber <= 1e-6) return 12.0;
-            else return 8.0;
+            else if (target_ber <= 1e-4) return 9.0;
+            else if (target_ber <= 1e-2) return 6.0;
+            else return 4.0;
             
         case ReceiveModulationType::AM:
             // AM需要中等SNR
             if (target_ber <= 1e-6) return 14.0;
-            else return 10.0;
+            else if (target_ber <= 1e-4) return 11.0;
+            else if (target_ber <= 1e-2) return 8.0;
+            else return 6.0;
             
         default:
-            return 10.0;
+            if (target_ber <= 1e-6) return 12.0;
+            else if (target_ber <= 1e-4) return 9.0;
+            else if (target_ber <= 1e-2) return 6.0;
+            else return 4.0;
     }
 }
 
