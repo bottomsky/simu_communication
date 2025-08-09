@@ -284,32 +284,7 @@ public:
     CommunicationAntiJamModel* getAntiJamModel() const { return antiJamModel_.get(); }
 };
 
-// 便利函数
-namespace CommunicationModelUtils {
-    // 快速计算函数
-    double quickCalculateRange(double frequency, double power, EnvironmentType env);
-    double quickCalculatePower(double frequency, double range, EnvironmentType env);
-    CommunicationQuality quickAssessQuality(double snr, double ber);
-    
-    // 单位转换函数
-    double dBmToWatts(double dBm);
-    double wattsTodBm(double watts);
-    double dBToLinear(double dB);
-    double linearTodB(double linear);
-    double frequencyToWavelength(double frequency);
-    double wavelengthToFrequency(double wavelength);
-    
-    // 环境建模辅助函数
-    double calculateAtmosphericLoss(double frequency, double distance, double humidity);
-    double calculateRainLoss(double frequency, double distance, double rainRate);
-    double calculateFoliageLoss(double frequency, double distance, double foliageDensity);
-    double calculateUrbanLoss(double frequency, double distance, double buildingDensity);
-    
-    // 统计分析函数
-    double calculateMean(const std::vector<double>& values);
-    double calculateStandardDeviation(const std::vector<double>& values);
-    double calculatePercentile(const std::vector<double>& values, double percentile);
-    std::pair<double, double> calculateConfidenceInterval(const std::vector<double>& values, double confidence);
-}
+// 引入工具类
+#include "CommunicationModelUtils.h"
 
 #endif // COMMUNICATION_MODEL_API_H
