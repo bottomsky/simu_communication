@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cmath>
 #include <iomanip>
+#include <chrono>
+#include <vector>
 
 // 简单的测试框架宏
 #define EXPECT_TRUE(condition) \

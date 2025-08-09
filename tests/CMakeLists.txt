@@ -74,6 +74,16 @@ target_link_libraries(test_communication_distance
     gtest
 )
 
+add_executable(test_communication_receive
+    unit/test_communication_receive_model.cpp
+)
+
+target_link_libraries(test_communication_receive
+    CommunicationModel
+    gtest_main
+    gtest
+)
+
 # 集成测试
 add_executable(test_integration
     integration/test_basic_integration.cpp
@@ -88,6 +98,7 @@ target_link_libraries(test_integration
 # 注册测试
 add_test(NAME SignalTransmissionModelTest COMMAND test_signal_transmission)
 add_test(NAME CommunicationDistanceModelTest COMMAND test_communication_distance)
+add_test(NAME CommunicationReceiveModelTest COMMAND test_communication_receive)
 add_test(NAME BasicIntegrationTest COMMAND test_integration)
 
 # 设置测试属性
@@ -101,6 +112,11 @@ set_tests_properties(CommunicationDistanceModelTest PROPERTIES
     LABELS "unit;basic"
 )
 
+set_tests_properties(CommunicationReceiveModelTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;basic"
+)
+
 set_tests_properties(BasicIntegrationTest PROPERTIES
     TIMEOUT 60
     LABELS "integration"
@@ -109,14 +125,14 @@ set_tests_properties(BasicIntegrationTest PROPERTIES
 # 添加自定义目标用于运行所有测试
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_signal_transmission test_communication_distance test_integration
+    DEPENDS test_signal_transmission test_communication_distance test_communication_receive test_integration
     COMMENT "运行所有测试"
 )
 
 # 添加自定义目标用于运行单元测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose -L unit
-    DEPENDS test_signal_transmission test_communication_distance
+    DEPENDS test_signal_transmission test_communication_distance test_communication_receive
     COMMENT "运行单元测试"
 )
 

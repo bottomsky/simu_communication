@@ -9,21 +9,33 @@ CommunicationReceiveModel::CommunicationReceiveModel(
     double temp, double antGain)
     : modType(mod), receiverType(receiver), receivedPower(-120.0), noiseFloor(-120.0) {
     
-    if (!setReceiveSensitivity(sensitivity)) {
-        throw std::invalid_argument("接收灵敏度超出有效范围(-150至-30dBm)");
+    if (!CommunicationReceiveParameterConfig::isReceiveSensitivityValid(sensitivity)) {
+        auto range = CommunicationReceiveParameterConfig::getReceiveSensitivityRange();
+        throw std::invalid_argument("接收灵敏度需在" + std::to_string(range.minValue) + "至" + std::to_string(range.maxValue) + "dBm范围内");
     }
-    if (!setNoiseFigure(nf)) {
-        throw std::invalid_argument("噪声系数超出有效范围(0至20dB)");
+    if (!CommunicationReceiveParameterConfig::isNoiseFigureValid(nf)) {
+        auto range = CommunicationReceiveParameterConfig::getNoiseFigureRange();
+        throw std::invalid_argument("噪声系数需在" + std::to_string(range.minValue) + "至" + std::to_string(range.maxValue) + "dB范围内");
     }
-    if (!setSystemBandwidth(bandwidth)) {
-        throw std::invalid_argument("系统带宽超出有效范围(0.1至10000kHz)");
+    if (!CommunicationReceiveParameterConfig::isSystemBandwidthValid(bandwidth)) {
+        auto range = CommunicationReceiveParameterConfig::getSystemBandwidthRange();
+        throw std::invalid_argument("系统带宽需在" + std::to_string(range.minValue) + "至" + std::to_string(range.maxValue) + "kHz范围内");
     }
-    if (!setAmbientTemperature(temp)) {
-        throw std::invalid_argument("环境温度超出有效范围(200至400K)");
+    if (!CommunicationReceiveParameterConfig::isAmbientTemperatureValid(temp)) {
+        auto range = CommunicationReceiveParameterConfig::getAmbientTemperatureRange();
+        throw std::invalid_argument("环境温度需在" + std::to_string(range.minValue) + "至" + std::to_string(range.maxValue) + "K范围内");
     }
-    if (!setAntennaGain(antGain)) {
-        throw std::invalid_argument("天线增益超出有效范围(-20至50dBi)");
+    if (!CommunicationReceiveParameterConfig::isAntennaGainValid(antGain)) {
+        auto range = CommunicationReceiveParameterConfig::getAntennaGainRange();
+        throw std::invalid_argument("天线增益需在" + std::to_string(range.minValue) + "至" + std::to_string(range.maxValue) + "dBi范围内");
     }
+    
+    // 设置参数值
+    receiveSensitivity = sensitivity;
+    noiseFigure = nf;
+    systemBandwidth = bandwidth;
+    ambientTemperature = temp;
+    antennaGain = antGain;
     
     // 计算初始噪声底
     noiseFloor = calculateSystemNoise();
@@ -31,28 +43,28 @@ CommunicationReceiveModel::CommunicationReceiveModel(
 
 // 参数校验方法实现
 bool CommunicationReceiveModel::isSensitivityValid(double sensitivity_dBm) const {
-    return sensitivity_dBm >= -150.0 && sensitivity_dBm <= -30.0;
+    return CommunicationReceiveParameterConfig::isReceiveSensitivityValid(sensitivity_dBm);
 }
 
 bool CommunicationReceiveModel::isNoiseFigureValid(double nf_dB) const {
-    return nf_dB >= 0.0 && nf_dB <= 20.0;
+    return CommunicationReceiveParameterConfig::isNoiseFigureValid(nf_dB);
 }
 
 bool CommunicationReceiveModel::isBandwidthValid(double bandwidth_kHz) const {
-    return bandwidth_kHz >= 0.1 && bandwidth_kHz <= 10000.0;
+    return CommunicationReceiveParameterConfig::isSystemBandwidthValid(bandwidth_kHz);
 }
 
 bool CommunicationReceiveModel::isTemperatureValid(double temp_K) const {
-    return temp_K >= 200.0 && temp_K <= 400.0;
+    return CommunicationReceiveParameterConfig::isAmbientTemperatureValid(temp_K);
 }
 
 bool CommunicationReceiveModel::isAntennaGainValid(double gain_dBi) const {
-    return gain_dBi >= -20.0 && gain_dBi <= 50.0;
+    return CommunicationReceiveParameterConfig::isAntennaGainValid(gain_dBi);
 }
 
 // 参数设置方法实现
 bool CommunicationReceiveModel::setReceiveSensitivity(double sensitivity_dBm) {
-    if (!isSensitivityValid(sensitivity_dBm)) {
+    if (!CommunicationReceiveParameterConfig::isReceiveSensitivityValid(sensitivity_dBm)) {
         return false;
     }
     receiveSensitivity = sensitivity_dBm;
@@ -60,7 +72,7 @@ bool CommunicationReceiveModel::setReceiveSensitivity(double sensitivity_dBm) {
 }
 
 bool CommunicationReceiveModel::setNoiseFigure(double nf_dB) {
-    if (!isNoiseFigureValid(nf_dB)) {
+    if (!CommunicationReceiveParameterConfig::isNoiseFigureValid(nf_dB)) {
         return false;
     }
     noiseFigure = nf_dB;
@@ -69,7 +81,7 @@ bool CommunicationReceiveModel::setNoiseFigure(double nf_dB) {
 }
 
 bool CommunicationReceiveModel::setSystemBandwidth(double bandwidth_kHz) {
-    if (!isBandwidthValid(bandwidth_kHz)) {
+    if (!CommunicationReceiveParameterConfig::isSystemBandwidthValid(bandwidth_kHz)) {
         return false;
     }
     systemBandwidth = bandwidth_kHz;
@@ -84,9 +96,11 @@ void CommunicationReceiveModel::setModulationType(ReceiveModulationType mod) {
 void CommunicationReceiveModel::setReceiverType(ReceiverType receiver) {
     receiverType = receiver;
 }
-
+/// @brief 设置接收机温度
+/// @param temp_K 温度(K)
+/// @return 温度是否设置成功
 bool CommunicationReceiveModel::setAmbientTemperature(double temp_K) {
-    if (!isTemperatureValid(temp_K)) {
+    if (!CommunicationReceiveParameterConfig::isAmbientTemperatureValid(temp_K)) {
         return false;
     }
     ambientTemperature = temp_K;
@@ -94,8 +108,11 @@ bool CommunicationReceiveModel::setAmbientTemperature(double temp_K) {
     return true;
 }
 
+/// @brief 设置天线增益
+/// @param gain_dBi 天线增益(dBi)
+/// @return 天线增益是否设置成功
 bool CommunicationReceiveModel::setAntennaGain(double gain_dBi) {
-    if (!isAntennaGainValid(gain_dBi)) {
+    if (!CommunicationReceiveParameterConfig::isAntennaGainValid(gain_dBi)) {
         return false;
     }
     antennaGain = gain_dBi;
@@ -103,7 +120,7 @@ bool CommunicationReceiveModel::setAntennaGain(double gain_dBi) {
 }
 
 bool CommunicationReceiveModel::setReceivedPower(double power_dBm) {
-    if (power_dBm < -200.0 || power_dBm > 50.0) {
+    if (!CommunicationReceiveParameterConfig::isReceivedPowerValid(power_dBm)) {
         return false;
     }
     receivedPower = power_dBm;
@@ -143,7 +160,8 @@ double CommunicationReceiveModel::getReceivedPower() const {
     return receivedPower;
 }
 
-// 内部计算方法实现
+/// @brief 计算热噪声功率
+/// @return 热噪声功率(dBm)
 double CommunicationReceiveModel::calculateThermalNoise() const {
     // 热噪声功率 = kTB (W)
     // 转换为dBm: 10*log10(kTB*1000)
@@ -151,6 +169,8 @@ double CommunicationReceiveModel::calculateThermalNoise() const {
     return 10.0 * log10(thermal_noise_W * 1000.0);
 }
 
+/// @brief 计算系统噪声功率
+/// @return 系统噪声功率(dBm)
 double CommunicationReceiveModel::calculateSystemNoise() const {
     // 系统噪声 = 热噪声 + 噪声系数
     // 使用标准公式: N = -174 + 10*log10(BW) + NF (dBm)
@@ -158,12 +178,17 @@ double CommunicationReceiveModel::calculateSystemNoise() const {
     return THERMAL_NOISE_DENSITY + 10.0 * log10(bandwidth_Hz) + noiseFigure;
 }
 
-// 核心计算方法实现
+/// @brief 计算信噪比
+/// @details 信噪比 = 接收信号功率 - 系统噪声功率 - 天线增益 (dB)
+/// @return 信噪比(dB)
 double CommunicationReceiveModel::calculateSignalToNoiseRatio() const {
-    // SNR = 接收信号功率 - 噪声功率 (dB)
-    return receivedPower - noiseFloor;
+    // SNR = 接收信号功率 - 系统噪声功率 - 天线增益 (dB)
+    return receivedPower - noiseFloor - antennaGain;
 }
 
+/// @brief 计算误码率
+/// @details 误码率 = 0.5 * erfc(sqrt(SNR))
+/// @return 误码率
 double CommunicationReceiveModel::calculateBitErrorRate() const {
     double snr_linear = pow(10.0, calculateSignalToNoiseRatio() / 10.0);
     
@@ -198,24 +223,39 @@ double CommunicationReceiveModel::calculateBitErrorRate() const {
     }
 }
 
+/// @brief 计算有效噪声功率
+/// @details 有效噪声功率 = 系统噪声功率 + 天线增益
+/// @return 有效噪声功率(dBm)
 double CommunicationReceiveModel::calculateEffectiveNoisePower() const {
-    return noiseFloor;
+    return noiseFloor + antennaGain;
 }
 
+/// @brief 计算最小可检测功率
+/// @details 最小可检测功率 = 噪声底 + 检测门限(通常3dB)
+/// @return 最小可检测功率(dBm)
 double CommunicationReceiveModel::calculateMinimumDetectablePower() const {
     // 最小可检测功率 = 噪声底 + 检测门限(通常3dB)
     return noiseFloor + 3.0;
 }
 
 // 接收性能评估方法实现
+/// @brief 检查信号是否可检测
+/// @details 信号可检测条件：接收功率大于等于最小可检测功率
+/// @return 信号是否可检测
 bool CommunicationReceiveModel::isSignalDetectable() const {
     return receivedPower > calculateMinimumDetectablePower();
 }
 
+/// @brief 检查信号是否可解码
+/// @details 信号可解码条件：接收功率大于等于接收灵敏度
+/// @return 信号是否可解码
 bool CommunicationReceiveModel::isSignalDecodable(double required_snr) const {
     return calculateSignalToNoiseRatio() >= required_snr;
 }
 
+/// @brief 计算接收余量
+/// @details 接收余量 = 接收功率 - 接收灵敏度
+/// @return 接收余量(dBm)
 double CommunicationReceiveModel::calculateReceiveMargin() const {
     return receivedPower - receiveSensitivity;
 }

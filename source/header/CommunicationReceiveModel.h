@@ -4,6 +4,7 @@
 #include <string>
 #include <stdexcept>
 #include <cmath>
+#include "CommunicationReceiveParameterConfig.h"
 
 // 调制方式枚举（与SignalTransmissionModel保持一致）
 enum class ReceiveModulationType {
