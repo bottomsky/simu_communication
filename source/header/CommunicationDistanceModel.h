@@ -3,13 +3,7 @@
 
 #include <string>
 #include <stdexcept>
-
-// 环境类型枚举，对应不同衰减特性
-enum class EnvironmentType {
-    OPEN_FIELD,    // 开阔地
-    URBAN_AREA,    // 城市区域
-    MOUNTAINOUS    // 山区
-};
+#include "EnvironmentLossConfigManager.h"
 
 class CommunicationDistanceModel {
 private:

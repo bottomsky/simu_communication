@@ -4,16 +4,16 @@
 
 // 环境衰减系数范围校验实现
 bool CommunicationDistanceModel::isAttenuationValid(double attenuation, EnvironmentType env) const {
-    switch (env) {
-        case EnvironmentType::OPEN_FIELD:
-            return attenuation >= 0.8 && attenuation <= 1.2;
-        case EnvironmentType::URBAN_AREA:
-            return attenuation >= 1.5 && attenuation <= 2.5;
-        case EnvironmentType::MOUNTAINOUS:
-            return attenuation >= 2.0 && attenuation <= 3.0;
-        default:
-            return false;
-    }
+    // 使用 EnvironmentLossConfigManager 获取环境配置
+    const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);
+    
+    // 根据环境损耗计算期望的衰减系数
+    double expectedAttenuation = 1.0 + (config.environmentLoss / 10.0);
+    
+    // 允许±0.5的偏差范围
+    double tolerance = 0.5;
+    return attenuation >= (expectedAttenuation - tolerance) && 
+           attenuation <= (expectedAttenuation + tolerance);
 }
 
 // 功率参数范围校验实现
@@ -68,18 +68,16 @@ bool CommunicationDistanceModel::setMaxLineOfSight(double km) {
 // 设置环境类型实现
 void CommunicationDistanceModel::setEnvironmentType(EnvironmentType env) {
     envType = env;
-    // 切换环境时自动适配默认衰减系数
-    switch (env) {
-        case EnvironmentType::OPEN_FIELD:
-            envAttenuation = 1.0;
-            break;
-        case EnvironmentType::URBAN_AREA:
-            envAttenuation = 2.0;
-            break;
-        case EnvironmentType::MOUNTAINOUS:
-            envAttenuation = 2.5;
-            break;
-    }
+    // 使用 EnvironmentLossConfigManager 获取环境配置
+    const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);
+    
+    // 根据环境损耗配置计算衰减系数
+    // 将环境损耗转换为衰减系数 (简化模型：每10dB环境损耗对应1.0衰减系数增量)
+    envAttenuation = 1.0 + (config.environmentLoss / 10.0);
+    
+    // 确保衰减系数在合理范围内
+    if (envAttenuation < 0.5) envAttenuation = 0.5;
+    if (envAttenuation > 5.0) envAttenuation = 5.0;
 }
 
 // 设置环境衰减系数实现

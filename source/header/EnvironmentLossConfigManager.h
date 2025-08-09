@@ -1,11 +1,17 @@
 #ifndef ENVIRONMENT_LOSS_CONFIG_MANAGER_H
 #define ENVIRONMENT_LOSS_CONFIG_MANAGER_H
 
-#include "CommunicationDistanceModel.h"
 #include <unordered_map>
 #include <string>
 #include <fstream>
 #include <sstream>
+
+// 前向声明 EnvironmentType 枚举
+enum class EnvironmentType {
+    OPEN_FIELD,    // 开阔地
+    URBAN_AREA,    // 城市区域
+    MOUNTAINOUS    // 山区
+};
 
 /**
  * @brief 环境损耗配置结构体
