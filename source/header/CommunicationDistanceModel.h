@@ -78,6 +78,12 @@ public:
     
     // 计算总路径损耗（包含环境因子）
     double calculateTotalPathLoss(double distance_km, double frequency_MHz) const;
+    
+    // 快速距离计算方法（使用当前模型参数）
+    double quickCalculateRange(double frequency_MHz) const;
+    
+    // 静态快速距离计算方法（向后兼容，使用默认参数）
+    static double quickCalculateRange(double frequency_MHz, double power_dBm, EnvironmentType env);
 
     // 获取参数信息字符串
     std::string getParameterInfo() const;

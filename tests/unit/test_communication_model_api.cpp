@@ -1,4 +1,5 @@
 #include "../source/header/CommunicationModelAPI.h"
+#include "../source/header/CommunicationDistanceModel.h"
 #include <iostream>
 #include <cassert>
 #include <cmath>
@@ -424,7 +425,7 @@ bool testUtilityFunctions() {
     std::cout << "测试便利函数..." << std::endl;
     
     // 测试快速距离计算
-    double range = CommunicationModelUtils::quickCalculateRange(2400.0, 30.0, EnvironmentType::OPEN_FIELD);
+    double range = CommunicationDistanceModel::quickCalculateRange(2400.0, 30.0, EnvironmentType::OPEN_FIELD);
     EXPECT_GT(range, 0.0);
     EXPECT_LT(range, 1000.0);
     

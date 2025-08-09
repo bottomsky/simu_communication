@@ -22,49 +22,6 @@ namespace CommunicationModelUtils {
 
     // ==================== 快速计算函数 ====================
     
-    double quickCalculateRange(double frequency, double power, EnvironmentType env) {
-        // 从配置获取环境特性
-        const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);
-        
-        // 假设接收条件：-100dBm噪声底，10dB SNR余量
-        double receiveSensitivity = -100.0;
-        double snrMargin = 10.0;
-        double maxPathLoss = power - receiveSensitivity - snrMargin;
-        
-        // 使用EnvironmentLossConfigManager计算总环境损耗（不包含距离相关的自由空间损耗）
-        // 这里我们需要估算一个初始距离来计算环境损耗，然后迭代求解
-        double estimatedDistance = 1.0; // 初始估计距离 1km
-        
-        // 迭代求解距离（简化的牛顿法）
-        for (int i = 0; i < 10; i++) {
-            // 计算当前距离下的总路径损耗
-            double freeSpacePathLoss = CommunicationDistanceModel::calculateFreeSpacePathLoss(estimatedDistance, frequency);
-            double totalEnvironmentLoss = EnvironmentLossConfigManager::calculateTotalEnvironmentLoss(estimatedDistance, frequency, env);
-            double totalCalculatedLoss = freeSpacePathLoss + totalEnvironmentLoss;
-            
-            // 计算误差
-            double error = totalCalculatedLoss - maxPathLoss;
-            
-            // 如果误差足够小，退出迭代
-            if (std::abs(error) < 0.1) {
-                break;
-            }
-            
-            // 根据误差调整距离估计（简化的调整策略）
-            if (error > 0) {
-                estimatedDistance *= 0.9; // 损耗过大，减小距离
-            } else {
-                estimatedDistance *= 1.1; // 损耗过小，增大距离
-            }
-            
-            // 确保距离在合理范围内
-            if (estimatedDistance < 0.001) estimatedDistance = 0.001;
-            if (estimatedDistance > 1000.0) estimatedDistance = 1000.0;
-        }
-        
-        return estimatedDistance;
-    }
-    
     double quickCalculatePower(double frequency, double range, EnvironmentType env) {
         // 从配置获取环境特性
         const EnvironmentLossConfig& config = EnvironmentLossConfigManager::getConfig(env);

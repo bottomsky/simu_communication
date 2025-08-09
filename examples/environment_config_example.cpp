@@ -1,6 +1,8 @@
 #include <iostream>
 #include <iomanip>
-#include "CommunicationModelAPI.h"
+#include "../source/header/CommunicationModelAPI.h"
+#include "../source/header/EnvironmentLossConfigManager.h"
+#include "../source/header/CommunicationDistanceModel.h"
 
 int main() {
     std::cout << "=== 环境损耗配置示例 ===" << std::endl;
@@ -46,7 +48,7 @@ int main() {
         
         auto linkStatus = api.calculateLinkStatus();
         double optimalFreq = api.calculateOptimalFrequency();
-        double range = CommunicationModelUtils::quickCalculateRange(2400.0, 20.0, envType);
+        double range = CommunicationDistanceModel::quickCalculateRange(2400.0, 20.0, envType);
         
         std::cout << "  " << envName << ":" << std::endl;
         std::cout << "    信号强度: " << linkStatus.signalStrength << " dBm" << std::endl;
@@ -69,7 +71,7 @@ int main() {
     api.setEnvironmentType(EnvironmentType::URBAN_AREA);
     auto newLinkStatus = api.calculateLinkStatus();
     double newOptimalFreq = api.calculateOptimalFrequency();
-    double newRange = CommunicationModelUtils::quickCalculateRange(2400.0, 20.0, EnvironmentType::URBAN_AREA);
+    double newRange = CommunicationDistanceModel::quickCalculateRange(2400.0, 20.0, EnvironmentType::URBAN_AREA);
     
     std::cout << "  自定义城市配置后:" << std::endl;
     std::cout << "    信号强度: " << newLinkStatus.signalStrength << " dBm" << std::endl;
@@ -83,7 +85,7 @@ int main() {
     
     auto resetLinkStatus = api.calculateLinkStatus();
     double resetOptimalFreq = api.calculateOptimalFrequency();
-    double resetRange = CommunicationModelUtils::quickCalculateRange(2400.0, 20.0, EnvironmentType::URBAN_AREA);
+    double resetRange = CommunicationDistanceModel::quickCalculateRange(2400.0, 20.0, EnvironmentType::URBAN_AREA);
     
     std::cout << "  重置后城市配置:" << std::endl;
     std::cout << "    信号强度: " << resetLinkStatus.signalStrength << " dBm" << std::endl;

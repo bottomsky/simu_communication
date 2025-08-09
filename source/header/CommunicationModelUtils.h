@@ -18,15 +18,6 @@ namespace CommunicationModelUtils {
     // ==================== 快速计算函数 ====================
     
     /**
-     * @brief 快速计算通信距离
-     * @param frequency 频率 (MHz)
-     * @param power 发射功率 (dBm)
-     * @param env 环境类型
-     * @return 通信距离 (km)
-     */
-    double quickCalculateRange(double frequency, double power, EnvironmentType env);
-    
-    /**
      * @brief 快速计算所需功率
      * @param frequency 频率 (MHz)
      * @param range 通信距离 (km)

@@ -200,6 +200,64 @@ double CommunicationDistanceModel::calculateTotalPathLoss(double distance_km, do
     return freeSpacePathLoss + totalEnvironmentLoss;
 }
 
+// 快速距离计算方法实现（使用当前模型参数）
+double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz) const {
+    if (frequency_MHz <= 0.0) {
+        return 0.0;
+    }
+    
+    // 计算最大允许路径损耗
+    double maxPathLoss = transmitPower - receiveSensitivity - linkMargin;
+    if (maxPathLoss <= 0.0) {
+        return 0.0; // 功率不足，无法通信
+    }
+    
+    // 使用迭代方法求解距离
+    double estimatedDistance = 1.0; // 初始估计距离 1km
+    
+    // 迭代求解距离（牛顿法的简化版本）
+    for (int i = 0; i < 15; i++) {
+        // 计算当前距离下的总路径损耗
+        double totalCalculatedLoss = calculateTotalPathLoss(estimatedDistance, frequency_MHz);
+        
+        // 计算误差
+        double error = totalCalculatedLoss - maxPathLoss;
+        
+        // 如果误差足够小，退出迭代
+        if (std::abs(error) < 0.1) {
+            break;
+        }
+        
+        // 根据误差调整距离估计
+        if (error > 0) {
+            estimatedDistance *= 0.9; // 损耗过大，减小距离
+        } else {
+            estimatedDistance *= 1.1; // 损耗过小，增大距离
+        }
+        
+        // 确保距离在合理范围内
+        if (estimatedDistance < 0.001) estimatedDistance = 0.001;
+        if (estimatedDistance > maxLineOfSight) estimatedDistance = maxLineOfSight;
+    }
+    
+    return estimatedDistance;
+}
+
+// 静态快速距离计算方法实现（向后兼容）
+double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz, double power_dBm, EnvironmentType env) {
+    // 创建临时模型实例，使用传入的参数
+    CommunicationDistanceModel tempModel(
+        100.0,      // 最大视距100km（足够大，不限制计算）
+        env,        // 环境类型
+        1.0,        // 默认衰减系数（会被环境类型覆盖）
+        -100.0,     // 接收灵敏度-100dBm
+        10.0,       // 链路余量10dB
+        power_dBm   // 发射功率
+    );
+    
+    return tempModel.quickCalculateRange(frequency_MHz);
+}
+
 // 获取参数信息字符串实现
 std::string CommunicationDistanceModel::getParameterInfo() const {
     std::stringstream ss;
