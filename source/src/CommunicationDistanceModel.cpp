@@ -159,7 +159,7 @@ double CommunicationDistanceModel::calculateEffectiveDistance() const {
 }
 
 // 计算自由空间路径损耗实现
-double CommunicationDistanceModel::calculateFreeSpacePathLoss(double distance_km, double frequency_MHz) const {
+double CommunicationDistanceModel::calculateFreeSpacePathLoss(double distance_km, double frequency_MHz) {
     if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
         return 0.0;
     }
@@ -177,7 +177,7 @@ double CommunicationDistanceModel::calculatePathLoss(double distance_km, double 
     }
     
     // 计算自由空间路径损耗
-    double freeSpacePathLoss = calculateFreeSpacePathLoss(distance_km, frequency_MHz);
+    double freeSpacePathLoss = CommunicationDistanceModel::calculateFreeSpacePathLoss(distance_km, frequency_MHz);
     
     // 使用EnvironmentLossConfigManager计算环境路径损耗
     double environmentPathLoss = EnvironmentLossConfigManager::calculateEnvironmentPathLoss(distance_km, envType);
@@ -192,7 +192,7 @@ double CommunicationDistanceModel::calculateTotalPathLoss(double distance_km, do
     }
     
     // 计算自由空间路径损耗
-    double freeSpacePathLoss = calculateFreeSpacePathLoss(distance_km, frequency_MHz);
+    double freeSpacePathLoss = CommunicationDistanceModel::calculateFreeSpacePathLoss(distance_km, frequency_MHz);
     
     // 使用EnvironmentLossConfigManager计算总环境损耗
     double totalEnvironmentLoss = EnvironmentLossConfigManager::calculateTotalEnvironmentLoss(distance_km, frequency_MHz, envType);

@@ -201,12 +201,14 @@ double CommunicationJammerModel::getDutyCycle() const { return dutyCycle; }
 double CommunicationJammerModel::getSweepRate() const { return sweepRate; }
 double CommunicationJammerModel::getSweepRange() const { return sweepRange; }
 
-// 内部计算方法实现
+/// @brief 计算传播损耗
+/// @details 传播损耗 = 20*log10(d) + 20*log10(f) + 32.45
+/// @return 传播损耗(dB)
 double CommunicationJammerModel::calculatePropagationLoss(double distance_km, double freq_kHz) const {
-    // 自由空间传播损耗公式: L = 20*log10(d) + 20*log10(f) + 32.45
-    // d: 距离(km), f: 频率(MHz)
+    // 使用CommunicationDistanceModel的自由空间路径损耗计算方法
+    // 将频率从kHz转换为MHz
     double freq_MHz = freq_kHz / 1000.0;
-    return 20.0 * log10(distance_km) + 20.0 * log10(freq_MHz) + 32.45;
+    return CommunicationDistanceModel::calculateFreeSpacePathLoss(distance_km, freq_MHz);
 }
 
 double CommunicationJammerModel::calculateFrequencyOverlap() const {
@@ -226,19 +228,26 @@ double CommunicationJammerModel::calculateFrequencyOverlap() const {
     double overlap_bandwidth = overlap_high - overlap_low;
     return overlap_bandwidth / targetBandwidth; // 重叠比例
 }
-
+/// @brief 计算干扰有效性
+/// @details 干扰有效性 = 干扰干信比 * 频率重叠度
+/// @return 干扰有效性(dB)
 double CommunicationJammerModel::calculateJammerEffectivePower() const {
     // 计算到达目标的有效干扰功率
     double path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
     return jammerPower - path_loss - atmosphericLoss;
 }
 
-// 核心计算方法实现
+/// @brief 计算干扰干信比
+/// @details 干信比 = 有效干扰功率 - 目标信号功率
+/// @return 干信比(dB)
 double CommunicationJammerModel::calculateJammerToSignalRatio() const {
     double effective_jammer_power = calculateJammerEffectivePower();
     return effective_jammer_power - targetPower;
 }
 
+/// @brief 计算干扰有效性
+/// @details 干扰有效性 = 干扰干信比 * 频率重叠度
+/// @return 干扰有效性(dB)
 double CommunicationJammerModel::calculateJammerEffectiveness() const {
     // 根据干扰类型计算干扰有效性
     switch (jammerType) {

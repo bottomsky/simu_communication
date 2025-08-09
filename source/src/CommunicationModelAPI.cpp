@@ -114,6 +114,9 @@ double CommunicationModelAPI::calculateOverallSignalStrength() const {
     return baseSignal - totalPathLoss;
 }
 
+/// @brief 计算信噪比
+/// @details 信噪比 = 总信号强度 - 环境噪声功率
+/// @return 信噪比(dB)
 double CommunicationModelAPI::calculateOverallSNR() const {
     if (!receiveModel_) return -50.0;
     

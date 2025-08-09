@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <cmath>
+#include "CommunicationDistanceModel.h"
 
 // 干扰类型枚举
 enum class JammerType {
