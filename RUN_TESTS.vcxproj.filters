@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\code\signal-transmission-model-cpp\CMakeFiles\44d68b706a290d4e121f7d6fc0d997a3\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{754BA442-8538-3630-9B5D-7E8EA9D54AA5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

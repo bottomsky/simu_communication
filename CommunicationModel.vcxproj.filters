@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationAntiJamModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationAntiJamParameterConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationDistanceModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationJammerModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationJammerParameterConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationModelAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationModelUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationParameterConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationReceiveModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\CommunicationReceiveParameterConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\EnvironmentLossConfigManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\code\signal-transmission-model-cpp\source\src\SignalTransmissionModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationAntiJamModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationAntiJamParameterConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationDistanceModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationJammerModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationJammerParameterConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationModelAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationModelUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationParameterConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationReceiveModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\CommunicationReceiveParameterConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\EnvironmentLossConfigManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\MathConstants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\code\signal-transmission-model-cpp\source\header\SignalTransmissionModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\code\signal-transmission-model-cpp\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{5BFDB036-F25B-32EF-83E7-CE2C36166621}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{B8DCEBB4-68AB-34D9-9D87-41F1DEC7F242}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
