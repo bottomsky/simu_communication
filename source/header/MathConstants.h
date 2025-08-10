@@ -998,8 +998,8 @@ namespace MathConstants {
     /// @brief 退化基数 1.0
     constexpr double DEGRADATION_BASE = 1.0;
     
-    /// @brief 最大功率因子 10.0
-    constexpr double MAX_POWER_FACTOR = 10.0;
+    /// @brief 最大功率因子 1.0
+    constexpr double MAX_POWER_FACTOR = 1.0;
     
     /// @brief 最大覆盖 1.0
     constexpr double MAX_COVERAGE = 1.0;

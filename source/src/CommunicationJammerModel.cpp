@@ -383,8 +383,7 @@ double CommunicationJammerModel::calculateJammingArea() const {
 /// @return 干扰覆盖半径(km)，返回-1表示计算失败
 double CommunicationJammerModel::calculateJammingRange() const {
     // 1. 参数有效性检查
-    if (this->jammerPower < 0 || this->targetPower < 0 ||
-        this->targetFrequency <= 0 || this->jammerFrequency <= 0) {
+    if (this->targetFrequency <= 0 || this->jammerFrequency <= 0) {
         return -1.0; // 无效参数返回错误
     }
 
@@ -514,6 +513,17 @@ std::string CommunicationJammerModel::getParameterInfo() const {
     return oss.str();
 }
 
+/// @brief 计算干扰覆盖范围
+/// @details 基于圆形覆盖范围计算面积，返回km²单位
+/// @return 覆盖范围(km²)
+double CommunicationJammerModel::calculateJammerCoverage() const {
+    double radius = calculateJammingRange();
+    if (radius <= 0) {
+        return 0.0; // 无有效覆盖
+    }
+    return MathConstants::PI * radius * radius; // 圆面积公式，单位km²
+}
+
 std::string CommunicationJammerModel::getJammerEffectInfo() const {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(3);
@@ -524,7 +534,7 @@ std::string CommunicationJammerModel::getJammerEffectInfo() const {
     oss << "通信性能下降: " << calculateCommunicationDegradation() * 100.0 << "%\n";
     oss << "频率重叠度: " << calculateFrequencyOverlap() * 100.0 << "%\n";
     oss << "有效干扰功率: " << calculateJammerEffectivePower() << " dBm\n";
-    oss << "干扰覆盖范围: " << calculateJammerCoverage() << " km²\n";
+    oss << "干扰覆盖范围: " << calculateJammingArea() << " m²\n";
     oss << "目标在范围内: " << (isTargetInJammerRange() ? "是" : "否") << "\n";
     
     oss << "干扰效果等级: ";

@@ -133,7 +133,8 @@ double CommunicationDistanceModel::getReceiveSensitivity() const {
     return receiveSensitivity;
 }
 
-// 获取链路余量实现
+/// @brief 获取链路余量
+/// @return 链路余量(dB)
 double CommunicationDistanceModel::getLinkMargin() const {
     return linkMargin;
 }
@@ -143,7 +144,8 @@ double CommunicationDistanceModel::getTransmitPower() const {
     return transmitPower;
 }
 
-// 计算实际有效通信距离实现
+/// @brief 计算实际有效通信距离
+/// @return 有效通信距离(km)
 double CommunicationDistanceModel::calculateEffectiveDistance() const {
     // 1. 计算功率受限距离（基于收发功率差）
     double powerDiff = transmitPower - receiveSensitivity - linkMargin;
@@ -159,7 +161,10 @@ double CommunicationDistanceModel::calculateEffectiveDistance() const {
     return std::min(envLimitedDistance * powerDistanceFactor, maxLineOfSight);
 }
 
-// 计算自由空间路径损耗实现
+/// @brief 计算自由空间路径损耗
+/// @param distance_km 距离(km)
+/// @param frequency_MHz 频率(MHz)
+/// @return 路径损耗(dB)
 double CommunicationDistanceModel::calculateFreeSpacePathLoss(double distance_km, double frequency_MHz) {
     if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
         return 0.0;
@@ -193,13 +198,62 @@ double CommunicationDistanceModel::calculateDistanceFromPathLoss(double pathLoss
     }
 
     // 计算距离（单位：km）
-    double distanceKm = std::pow(10.0, (pathLoss_dB - MathConstants::FSPL_CONSTANT - MathConstants::FSPL_DISTANCE_COEFFICIENT * logFreq) / MathConstants::FSPL_DISTANCE_COEFFICIENT);
+    double distanceKm = std::pow(10.0, (pathLoss_dB - MathConstants::FSPL_CONSTANT - MathConstants::FSPL_FREQUENCY_COEFFICIENT * logFreq) / MathConstants::FSPL_DISTANCE_COEFFICIENT);
     
     // 确保距离为合理正值
     return (distanceKm > 0) ? distanceKm : 0.0;
 }
 
-// 计算路径损耗实现（包含环境因子）
+/// @brief 计算路径损耗对应的距离（考虑环境损耗）
+/// @param pathLoss_dB 总路径损耗(dB)，包含自由空间损耗和环境损耗
+/// @param frequency_MHz 频率(MHz)
+/// @param envLossCoeff 环境损耗系数(dB)，不同场景取值不同（如市区30dB，郊区15dB，农村5dB）
+/// @return 距离(km)，返回-1表示计算失败
+double CommunicationDistanceModel::calculateDistanceFromPathLoss(
+    double pathLoss_dB, 
+    double frequency_MHz, 
+    double envLossCoeff) {
+    // 参数有效性检查：路径损耗和频率必须为正，环境损耗非负（损耗不能为负）
+    if (pathLoss_dB < 0.0 || frequency_MHz <= 0.0 || envLossCoeff < 0.0) {
+        return -1.0; // 无效参数返回错误
+    }
+    
+    // 1. 从总路径损耗中剥离环境损耗，得到纯自由空间损耗
+    // 总路径损耗 = 自由空间损耗 + 环境损耗系数
+    double freeSpaceLoss = pathLoss_dB - envLossCoeff;
+    if (freeSpaceLoss < 0.0) {
+        // 若自由空间损耗为负，说明环境损耗已超过总损耗，此时距离极近
+        return 0.0;
+    }
+    
+    // 2. 自由空间损耗公式：L_free = 20log10(d) + 20log10(f) + 32.45
+    // 转换为距离计算：d(km) = 10^[(L_free - 20log10(f) - 32.45)/20]
+    // 其中：L_free为自由空间损耗(dB)，d为距离(km)，f为频率(MHz)
+    
+    // 计算频率的对数项（避免log10(0)导致的异常）
+    double logFreq = std::log10(frequency_MHz);
+    if (std::isnan(logFreq) || std::isinf(logFreq)) {
+        return -1.0; // 对数计算异常
+    }
+    
+    // 3. 代入公式计算距离（使用常量定义提高可读性）
+    // FSPL_CONSTANT = 32.45 (自由空间损耗公式中的常数项)
+    // FSPL_DISTANCE_COEFFICIENT = 20 (距离项系数)
+    // FSPL_FREQUENCY_COEFFICIENT = 20 (频率项系数)
+    // 计算距离（单位：km）
+    double distanceKm = std::pow(
+        10.0, 
+        (freeSpaceLoss - MathConstants::FSPL_CONSTANT - MathConstants::FSPL_FREQUENCY_COEFFICIENT * logFreq) / MathConstants::FSPL_DISTANCE_COEFFICIENT);
+    
+    
+    // 确保距离为合理正值
+    return (distanceKm > 0) ? distanceKm : 0.0;
+}
+
+/// @brief 计算路径损耗（包含环境因子）
+/// @param distance_km 距离(km)
+/// @param frequency_MHz 频率(MHz)
+/// @return 路径损耗(dB)
 double CommunicationDistanceModel::calculatePathLoss(double distance_km, double frequency_MHz) const {
     if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
         return 0.0;
@@ -241,13 +295,21 @@ double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz) con
         return 0.0; // 功率不足，无法通信
     }
     
-    // 使用迭代方法求解距离
-    double estimatedDistance = MathConstants::INITIAL_DISTANCE_ESTIMATE; // 初始估计距离 1km
+    // 方法1：首先尝试使用自由空间路径损耗计算基础距离
+    double freeSpaceDistance = CommunicationDistanceModel::calculateDistanceFromPathLoss(maxPathLoss, frequency_MHz);
+    if (freeSpaceDistance <= 0.0) {
+        return 0.0; // 计算失败
+    }
     
-    // 迭代求解距离（牛顿法的简化版本）
+    // 方法2：考虑环境损耗的影响，使用二分法求解精确距离
+    double minDistance = MathConstants::MIN_DISTANCE_LIMIT;
+    double maxDistance = std::min(freeSpaceDistance * 2.0, maxLineOfSight); // 以自由空间距离的2倍作为上限
+    double targetDistance = freeSpaceDistance; // 初始估计
+    
+    // 使用二分法求解，比原来的迭代法更稳定和高效
     for (int i = 0; i < MathConstants::MAX_ITERATIONS; i++) {
         // 计算当前距离下的总路径损耗
-        double totalCalculatedLoss = calculateTotalPathLoss(estimatedDistance, frequency_MHz);
+        double totalCalculatedLoss = calculateTotalPathLoss(targetDistance, frequency_MHz);
         
         // 计算误差
         double error = totalCalculatedLoss - maxPathLoss;
@@ -257,22 +319,33 @@ double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz) con
             break;
         }
         
-        // 根据误差调整距离估计
+        // 二分法调整距离范围
         if (error > 0) {
-            estimatedDistance *= MathConstants::DISTANCE_DECREASE_FACTOR; // 损耗过大，减小距离
+            // 损耗过大，距离太远，缩小上限
+            maxDistance = targetDistance;
         } else {
-            estimatedDistance *= MathConstants::DISTANCE_INCREASE_FACTOR; // 损耗过小，增大距离
+            // 损耗过小，距离太近，增大下限
+            minDistance = targetDistance;
         }
         
-        // 确保距离在合理范围内
-        if (estimatedDistance < MathConstants::MIN_DISTANCE_LIMIT) estimatedDistance = MathConstants::MIN_DISTANCE_LIMIT;
-        if (estimatedDistance > maxLineOfSight) estimatedDistance = maxLineOfSight;
+        // 更新目标距离为中点
+        targetDistance = (minDistance + maxDistance) / 2.0;
+        
+        // 防止范围过小导致无限循环
+        if (maxDistance - minDistance < MathConstants::MIN_DISTANCE_LIMIT) {
+            break;
+        }
     }
     
-    return estimatedDistance;
+    // 确保结果在合理范围内
+    return std::min(std::max(targetDistance, MathConstants::MIN_DISTANCE_LIMIT), maxLineOfSight);
 }
 
-// 静态快速距离计算方法实现（向后兼容）
+/// @brief 静态快速距离计算方法（向后兼容）
+/// @param frequency_MHz 频率(MHz)
+/// @param power_dBm 发射功率(dBm)
+/// @param env 环境类型
+/// @return 有效通信距离(km)
 double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz, double power_dBm, EnvironmentType env) {
     // 创建临时模型实例，使用传入的参数
     CommunicationDistanceModel tempModel(
@@ -284,7 +357,14 @@ double CommunicationDistanceModel::quickCalculateRange(double frequency_MHz, dou
         power_dBm   // 发射功率
     );
     
-    return tempModel.quickCalculateRange(frequency_MHz);
+    // 调用临时模型的快速距离计算方法
+    double distance = tempModel.quickCalculateRange(frequency_MHz);
+    
+    // 确保距离在合理范围内
+    if (distance < 0.0) {
+        return 0.0;
+    }
+    return distance;
 }
 
 // 获取参数信息字符串实现

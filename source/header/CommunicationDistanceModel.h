@@ -79,6 +79,15 @@ public:
     // 根据自由空间路径损耗反推距离
     static double calculateDistanceFromPathLoss(double pathLoss_dB, double frequency_MHz);
     
+    /// @brief 计算路径损耗对应的距离（考虑环境损耗）
+    /// @param pathLoss_dB 总路径损耗(dB)，包含自由空间损耗和环境损耗
+    /// @param frequency_MHz 频率(MHz)
+    /// @param envLossCoeff 环境损耗系数(dB)，不同场景取值不同（如市区30dB，郊区15dB，农村5dB）
+    /// @return 距离(km)，返回-1表示计算失败
+    static double calculateDistanceFromPathLoss(
+        double pathLoss_dB, 
+        double frequency_MHz, 
+        double envLossCoeff);
     // 计算总路径损耗（包含环境因子）
     double calculateTotalPathLoss(double distance_km, double frequency_MHz) const;
     
