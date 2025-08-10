@@ -226,9 +226,9 @@ TEST_F(CommunicationModelAPIJammingTest, AntiJamImprovementOnPerformance) {
 TEST_F(CommunicationModelAPIJammingTest, DifferentJammerTypesImpact) {
     std::vector<JammerType> jammerTypes = {
         JammerType::GAUSSIAN_NOISE,
-        JammerType::TONE_JAMMER,
-        JammerType::SWEEP_JAMMER,
-        JammerType::PULSE_JAMMER
+        JammerType::NARROWBAND,
+        JammerType::SWEEP_FREQUENCY,
+        JammerType::PULSE
     };
     
     std::vector<double> berValues;

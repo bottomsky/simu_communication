@@ -57,7 +57,7 @@ TEST_F(CommunicationModelAPICalculationsTest, CalculateLinkStatus) {
     EXPECT_GE(status.packetLossRate, 0.0);
     EXPECT_LE(status.packetLossRate, 1.0);
     
-    EXPECT_NE(status.quality, CommunicationQuality::UNKNOWN);
+    EXPECT_NE(status.quality, CommunicationQuality::FAILED);
     
     EXPECT_FALSE(status.statusDescription.empty());
 }
@@ -182,9 +182,8 @@ TEST_F(CommunicationModelAPICalculationsTest, FrequencyImpactOnPerformance) {
 TEST_F(CommunicationModelAPICalculationsTest, EnvironmentTypeImpactOnPerformance) {
     std::vector<EnvironmentType> envTypes = {
         EnvironmentType::OPEN_FIELD,
-        EnvironmentType::SUBURBAN,
-        EnvironmentType::URBAN,
-        EnvironmentType::INDOOR
+        EnvironmentType::URBAN_AREA,
+        EnvironmentType::MOUNTAINOUS
     };
     
     std::vector<double> signalStrengths;
@@ -195,10 +194,9 @@ TEST_F(CommunicationModelAPICalculationsTest, EnvironmentTypeImpactOnPerformance
         signalStrengths.push_back(status.signalStrength);
     }
     
-    // 验证开阔地信号强度最好，室内最差
-    EXPECT_GE(signalStrengths[0], signalStrengths[1]); // OPEN_FIELD >= SUBURBAN
-    EXPECT_GE(signalStrengths[1], signalStrengths[2]); // SUBURBAN >= URBAN
-    EXPECT_GE(signalStrengths[2], signalStrengths[3]); // URBAN >= INDOOR
+    // 验证开阔地信号强度最好，山区最差
+    EXPECT_GE(signalStrengths[0], signalStrengths[1]); // OPEN_FIELD >= URBAN_AREA
+    EXPECT_GE(signalStrengths[1], signalStrengths[2]); // URBAN_AREA >= MOUNTAINOUS
 }
 
 /**

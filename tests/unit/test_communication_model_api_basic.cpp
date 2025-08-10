@@ -143,17 +143,14 @@ TEST_F(CommunicationModelAPIBasicTest, SetDistance) {
  * @brief 测试环境类型设置
  */
 TEST_F(CommunicationModelAPIBasicTest, SetEnvironmentType) {
-    EXPECT_TRUE(api->setEnvironmentType(EnvironmentType::URBAN));
-    EXPECT_EQ(api->getEnvironment().environmentType, EnvironmentType::URBAN);
+    EXPECT_TRUE(api->setEnvironmentType(EnvironmentType::URBAN_AREA));
+    EXPECT_EQ(api->getEnvironment().environmentType, EnvironmentType::URBAN_AREA);
     
-    EXPECT_TRUE(api->setEnvironmentType(EnvironmentType::SUBURBAN));
-    EXPECT_EQ(api->getEnvironment().environmentType, EnvironmentType::SUBURBAN);
+    EXPECT_TRUE(api->setEnvironmentType(EnvironmentType::MOUNTAINOUS));
+    EXPECT_EQ(api->getEnvironment().environmentType, EnvironmentType::MOUNTAINOUS);
     
-    EXPECT_TRUE(api->setEnvironmentType(EnvironmentType::RURAL));
-    EXPECT_EQ(api->getEnvironment().environmentType, EnvironmentType::RURAL);
-    
-    EXPECT_TRUE(api->setEnvironmentType(EnvironmentType::INDOOR));
-    EXPECT_EQ(api->getEnvironment().environmentType, EnvironmentType::INDOOR);
+    EXPECT_TRUE(api->setEnvironmentType(EnvironmentType::OPEN_FIELD));
+    EXPECT_EQ(api->getEnvironment().environmentType, EnvironmentType::OPEN_FIELD);
 }
 
 /**
@@ -165,7 +162,7 @@ TEST_F(CommunicationModelAPIBasicTest, SetEnvironment) {
     env.bandwidth = 20.0;
     env.transmitPower = 30.0;
     env.distance = 5.0;
-    env.environmentType = EnvironmentType::URBAN;
+    env.environmentType = EnvironmentType::URBAN_AREA;
     env.temperature = 25.0;
     env.humidity = 60.0;
     env.atmosphericPressure = 1013.25;
@@ -177,7 +174,7 @@ TEST_F(CommunicationModelAPIBasicTest, SetEnvironment) {
     EXPECT_EQ(retrievedEnv.bandwidth, 20.0);
     EXPECT_EQ(retrievedEnv.transmitPower, 30.0);
     EXPECT_EQ(retrievedEnv.distance, 5.0);
-    EXPECT_EQ(retrievedEnv.environmentType, EnvironmentType::URBAN);
+    EXPECT_EQ(retrievedEnv.environmentType, EnvironmentType::URBAN_AREA);
     EXPECT_EQ(retrievedEnv.temperature, 25.0);
     EXPECT_EQ(retrievedEnv.humidity, 60.0);
     EXPECT_EQ(retrievedEnv.atmosphericPressure, 1013.25);
