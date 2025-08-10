@@ -135,6 +135,9 @@ bool CommunicationReceiveModel::setDetectionThreshold(double threshold_dB) {
     return true;
 }
 
+/// @brief 设置接收功率
+/// @param power_dBm 接收功率(dBm)
+/// @return 接收功率是否设置成功
 bool CommunicationReceiveModel::setReceivedPower(double power_dBm) {
     if (!CommunicationReceiveParameterConfig::isReceivedPowerValid(power_dBm)) {
         return false;
