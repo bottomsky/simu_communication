@@ -268,7 +268,10 @@ double CommunicationDistanceModel::calculatePathLoss(double distance_km, double 
     return freeSpacePathLoss + environmentPathLoss;
 }
 
-// 计算总路径损耗实现（包含所有损耗因子）
+/// @brief  计算总路径损耗（包含环境因子）
+/// @param distance_km 距离（单位：千米）
+/// @param frequency_MHz 频率（单位：兆赫）
+/// @return 总路径损耗（单位：分贝）
 double CommunicationDistanceModel::calculateTotalPathLoss(double distance_km, double frequency_MHz) const {
     if (distance_km <= 0.0 || frequency_MHz <= 0.0) {
         return 0.0;
