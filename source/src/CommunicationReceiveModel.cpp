@@ -1,4 +1,7 @@
 #include "../header/CommunicationReceiveModel.h"
+#include "../header/MathConstants.h"
+#include <cmath>
+#include <algorithm>
 #include <sstream>
 #include <iomanip>
 
@@ -165,75 +168,95 @@ double CommunicationReceiveModel::getReceivedPower() const {
 double CommunicationReceiveModel::calculateThermalNoise() const {
     // 热噪声功率 = kTB (W)
     // 转换为dBm: 10*log10(kTB*1000)
-    double thermal_noise_W = BOLTZMANN_CONSTANT * ambientTemperature * (systemBandwidth * 1000);
+    double thermal_noise_W = MathConstants::BOLTZMANN_CONSTANT * ambientTemperature * (systemBandwidth * 1000);
     return 10.0 * log10(thermal_noise_W * 1000.0);
 }
 
 /// @brief 计算系统噪声功率
 /// @return 系统噪声功率(dBm)
 double CommunicationReceiveModel::calculateSystemNoise() const {
-    // 系统噪声 = 热噪声 + 噪声系数
-    // 使用标准公式: N = -174 + 10*log10(BW) + NF (dBm)
-    double bandwidth_Hz = systemBandwidth * 1000.0;
-    return THERMAL_NOISE_DENSITY + 10.0 * log10(bandwidth_Hz) + noiseFigure;
+    // 修正：系统噪声 = 热噪声（含温度影响） + 噪声系数
+    // 复用calculateThermalNoise()的结果，确保温度被正确纳入计算
+    return calculateThermalNoise() + noiseFigure;
 }
 
-/// @brief 计算信噪比
-/// @details 信噪比 = 接收信号功率 + 天线增益 - 系统噪声功率 (dB)
-/// @return 信噪比(dB)
-double CommunicationReceiveModel::calculateSignalToNoiseRatio() const {
-    // SNR = 接收信号功率 + 天线增益 - 系统噪声功率 (dB)
-    return receivedPower + antennaGain - noiseFloor;
-}
-
-/// @brief 计算误码率
-/// @details 误码率 = 0.5 * erfc(sqrt(SNR))
+/// @brief 计算误码率（优化版）
+/// @details 采用更精确的理论公式，尤其是FM和AM调制
 /// @return 误码率
 double CommunicationReceiveModel::calculateBitErrorRate() const {
-    double snr_linear = pow(10.0, calculateSignalToNoiseRatio() / 10.0);
+    double snr_db = calculateSignalToNoiseRatio();
+    if (snr_db < -10.0) { // SNR过低时直接返回高误码率
+        return 0.5;
+    }
+    double snr_linear = pow(10.0, snr_db / 10.0);
     double ber = 0.0;
     
-    // 根据调制方式计算误码率
+    // 根据调制方式计算误码率（采用更精确的理论模型）
     switch (modType) {
         case ReceiveModulationType::BPSK:
-            // BER = 0.5 * erfc(sqrt(SNR))
+            // AWGN信道下BPSK理论公式：0.5*erfc(sqrt(SNR))
             ber = 0.5 * erfc(sqrt(snr_linear));
             break;
             
         case ReceiveModulationType::QPSK:
-            // BER = 0.5 * erfc(sqrt(SNR/2))
+            // QPSK等价于两个正交BPSK，BER公式与BPSK相同（SNR需折算）
             ber = 0.5 * erfc(sqrt(snr_linear / 2.0));
             break;
             
         case ReceiveModulationType::QAM16:
-            // 简化的16QAM误码率公式
-            ber = 0.375 * erfc(sqrt(0.4 * snr_linear));
+            // 16QAM精确公式（考虑Gray编码）
+            if (snr_linear < 1e-3) {
+                ber = 0.5; // 极低端保护
+            } else {
+                double term1 = 3.0 / 8.0 * erfc(sqrt(0.4 * snr_linear));
+                double term2 = 2.0 / 8.0 * erfc(sqrt(1.2 * snr_linear));
+                double term3 = 3.0 / 8.0 * erfc(sqrt(2.0 * snr_linear));
+                ber = term1 + term2 + term3;
+            }
             break;
             
         case ReceiveModulationType::FM:
-            // FM的误码率与SNR的关系较复杂，使用简化模型
-            if (snr_linear < 10.0) {
-                ber = 0.1; // 低SNR时误码率较高
+            // 调频（FM）相干解调理论公式（假设频偏比β=5，语音通信典型值）
+            // 参考：BER ≈ (1/(2*sqrt(π*SNR))) * exp(-SNR/2) （大SNR近似）
+            // 低SNR时使用更精确的积分近似
+            if (snr_linear < 2.0) {
+                // 低SNR区域：考虑鉴频器噪声特性
+                ber = 0.5 * exp(-0.5 * snr_linear);
             } else {
-                ber = 1e-6 * exp(-snr_linear / 10.0);
+                // 高SNR区域：相干解调近似
+                ber = (1.0 / (2.0 * sqrt(MathConstants::PI * snr_linear))) * exp(-snr_linear / 2.0);
             }
             break;
             
         case ReceiveModulationType::AM:
-            // AM的误码率模型
-            ber = 0.5 * erfc(sqrt(snr_linear / 4.0));
+            // 调幅（AM）包络检波理论公式（假设调制深度m=1）
+            // 参考：BER = 0.5 * [1 - sqrt(SNR/(SNR + 2))] （大SNR近似）
+            if (snr_linear < 0.1) {
+                ber = 0.5; // 极低端保护
+            } else {
+                double denominator = snr_linear + 2.0;
+                ber = 0.5 * (1.0 - sqrt(snr_linear / denominator));
+            }
             break;
             
         default:
-            ber = 0.5; // 默认返回50%误码率
+            ber = 0.5; // 未知调制方式默认50%误码率
             break;
     }
     
-    // 确保误码率大于0，但允许在高SNR时继续变化
-    // 使用一个与SNR相关的最小值，确保不同SNR产生不同结果
-    double snr_db = calculateSignalToNoiseRatio();
-    double min_ber = 1e-50 * exp(-snr_db / 100.0); // SNR越高，最小值越小
-    return std::max(ber, min_ber);
+    // 限制误码率范围（避免数值下溢或异常）
+    const double min_ber = 1e-20;  // 理论最小误码率下限
+    const double max_ber = 0.5;    // 最大可能误码率
+    return std::clamp(ber, min_ber, max_ber);
+}
+
+
+/// @brief 计算信噪比
+/// @details 信噪比 = 接收信号功率 - 系统噪声功率 (dB)
+/// @return 信噪比(dB)
+double CommunicationReceiveModel::calculateSignalToNoiseRatio() const {
+    // 修正：移除重复的天线增益叠加，接收功率已包含天线增益的影响
+    return receivedPower - noiseFloor;
 }
 
 /// @brief 计算有效噪声功率
@@ -262,7 +285,7 @@ bool CommunicationReceiveModel::isSignalDetectable() const {
 /// @brief 检查信号是否可解码
 /// @details 信号可解码条件：接收功率大于等于接收灵敏度
 /// @return 信号是否可解码
-bool CommunicationReceiveModel::isSignalDecodable(double required_snr) const {
+bool CommunicationReceiveModel::isSignalDecodable(double required_snr ) const {
     return calculateSignalToNoiseRatio() >= required_snr;
 }
 

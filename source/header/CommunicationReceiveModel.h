@@ -40,7 +40,6 @@ private:
     double noiseFloor;          // 噪声底(dBm)
     
     // 常量定义
-    static constexpr double BOLTZMANN_CONSTANT = 1.38e-23; // 玻尔兹曼常数(J/K)
     static constexpr double THERMAL_NOISE_DENSITY = -174.0; // 热噪声密度(dBm/Hz)
 
     // 参数校验方法

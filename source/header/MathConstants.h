@@ -33,6 +33,9 @@ namespace MathConstants {
 
     // ==================== 物理常量 ====================
     
+    /// @brief 玻尔兹曼常数 (J/K)
+    constexpr double BOLTZMANN_CONSTANT = 1.38e-23;
+    
     /// @brief 光速 (m/s)
     constexpr double SPEED_OF_LIGHT = 299792458.0;
     
