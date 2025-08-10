@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="CommunicationModelWrapper.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+
+  <!-- 复制动态库到输出目录 -->
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <None Include="..\..\build\bin\CommunicationModelCAPI.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\CommunicationModelCAPI.dll')" />
+    <None Include="..\..\build\lib\CommunicationModelCAPI.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\lib\CommunicationModelCAPI.dll')" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <None Include="..\..\build\lib\libCommunicationModelCAPI.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\lib\libCommunicationModelCAPI.so')" />
+  </ItemGroup>
+
+</Project>
