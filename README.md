@@ -16,7 +16,11 @@
 2. **通信接收模型** - Communication Receive Model
    - 模拟接收端信号处理过程
    - 计算信噪比、误码率等关键性能指标
-   - 支持多种调制解调方式
+   - 可调整检测门限设置
+   - 智能信号解码判断 (支持无参和有参两种方式)
+   - 环境温度动态调整 (默认290K)
+   - 支持多种调制解调方式 (BPSK/QPSK/16QAM/FM/AM)
+   - 完整的性能指标输出
 
 3. **通信干扰模型** - Communication Jammer Model
    - 仿真各种干扰类型对通信系统的影响
@@ -39,6 +43,10 @@
 - **🔍 测试框架**: 集成Google Test框架
 - **📈 代码质量**: 严格的编译警告和代码规范
 - **🎯 模块化设计**: 清晰的模块分离和接口设计
+- **🔧 智能检测**: 支持可调整检测门限和智能信号解码判断
+- **⚙️ 参数优化**: 提供默认参数配置，支持快速开始和精细调优
+- **📊 性能分析**: 全面的性能指标计算，包括SNR、BER、噪声功率等
+- **🔄 向后兼容**: 新功能保持与现有代码的完全兼容性
 
 ## 项目结构
 
@@ -171,42 +179,104 @@ std::cout << "快速计算距离: " << quickRange << " km" << std::endl;
 
 #### 2. 通信接收模型 (CommunicationReceiveModel)
 
-通信接收模型用于分析接收机性能，包括信噪比、误码率等关键指标。
+通信接收模型用于分析接收机性能，包括信噪比、误码率等关键指标。支持可调整检测门限和智能信号解码判断。
 
 ```cpp
 #include "CommunicationReceiveModel.h"
 
-// 创建接收模型
-CommunicationReceiveModel receiveModel(
+// 创建接收模型 - 使用默认参数
+CommunicationReceiveModel receiveModel;
+
+// 或者指定完整参数
+CommunicationReceiveModel receiveModel2(
     -100.0,                              // 接收灵敏度 -100dBm
     3.0,                                // 噪声系数 3dB
     25.0,                               // 系统带宽 25kHz
     ReceiveModulationType::QPSK,        // QPSK调制
     ReceiverType::SUPERHETERODYNE,      // 超外差接收机
-    290.0,                              // 环境温度 290K
+    290.0,                              // 环境温度 290K (默认值)
     2.0                                 // 天线增益 2dBi
 );
 
 // 设置接收信号功率
 receiveModel.setReceivedPower(-85.0);   // 接收功率 -85dBm
 
-// 计算信噪比
+// 基础性能计算
 double snr = receiveModel.calculateSignalToNoiseRatio();
-std::cout << "信噪比: " << snr << " dB" << std::endl;
-
-// 计算误码率
 double ber = receiveModel.calculateBitErrorRate();
+double noisePower = receiveModel.calculateEffectiveNoisePower();
+double minDetectable = receiveModel.calculateMinimumDetectablePower();
+
+std::cout << "信噪比: " << snr << " dB" << std::endl;
 std::cout << "误码率: " << ber << std::endl;
+std::cout << "有效噪声功率: " << noisePower << " dBm" << std::endl;
+std::cout << "最小可检测功率: " << minDetectable << " dBm" << std::endl;
 
-// 判断信号是否可检测和解码
+// 检测门限设置 (新功能)
+receiveModel.setDetectionThreshold(15.0);  // 设置检测门限为15dB
+double threshold = receiveModel.getDetectionThreshold();
+std::cout << "当前检测门限: " << threshold << " dB" << std::endl;
+
+// 环境温度动态调整
+receiveModel.setAmbientTemperature(310.0); // 设置环境温度为310K
+double temp = receiveModel.getAmbientTemperature();
+std::cout << "当前环境温度: " << temp << " K" << std::endl;
+
+// 信号检测和解码判断 (增强功能)
 bool detectable = receiveModel.isSignalDetectable();
-bool decodable = receiveModel.isSignalDecodable(12.0); // 要求12dB SNR
 std::cout << "信号可检测: " << (detectable ? "是" : "否") << std::endl;
-std::cout << "信号可解码: " << (decodable ? "是" : "否") << std::endl;
 
-// 计算接收余量
-double margin = receiveModel.calculateReceiveMargin();
-std::cout << "接收余量: " << margin << " dB" << std::endl;
+// 信号解码判断 - 支持两种方式
+// 方式1: 智能判断 (根据调制方式自动选择1e-6误码率对应的SNR要求)
+bool decodableAuto = receiveModel.isSignalDecodable();
+std::cout << "信号可解码(智能): " << (decodableAuto ? "是" : "否") << std::endl;
+
+// 方式2: 手动指定SNR要求
+bool decodableManual = receiveModel.isSignalDecodable(12.0); // 要求12dB SNR
+std::cout << "信号可解码(12dB): " << (decodableManual ? "是" : "否") << std::endl;
+
+// 获取调制方式对应的理论SNR要求
+double requiredSNR = receiveModel.getRequiredSNRForBER(1e-6); // 1e-6误码率
+std::cout << "1e-6误码率所需SNR: " << requiredSNR << " dB" << std::endl;
+
+// 计算接收余量和检测余量
+double receiveMargin = receiveModel.calculateReceiveMargin();
+std::cout << "接收余量: " << receiveMargin << " dB" << std::endl;
+
+// 获取完整参数和性能信息
+std::cout << "\n=== 参数信息 ===" << std::endl;
+std::cout << receiveModel.getParameterInfo() << std::endl;
+
+std::cout << "\n=== 性能信息 ===" << std::endl;
+std::cout << receiveModel.getPerformanceInfo() << std::endl;
+
+// 不同调制方式的性能比较
+std::vector<ReceiveModulationType> modTypes = {
+    ReceiveModulationType::BPSK,
+    ReceiveModulationType::QPSK,
+    ReceiveModulationType::QAM16,
+    ReceiveModulationType::FM,
+    ReceiveModulationType::AM
+};
+
+std::cout << "\n=== 调制方式性能比较 ===" << std::endl;
+for (auto modType : modTypes) {
+    receiveModel.setModulationType(modType);
+    double snrReq = receiveModel.getRequiredSNRForBER(1e-6);
+    bool canDecode = receiveModel.isSignalDecodable();
+    
+    std::string modName;
+    switch(modType) {
+        case ReceiveModulationType::BPSK: modName = "BPSK"; break;
+        case ReceiveModulationType::QPSK: modName = "QPSK"; break;
+        case ReceiveModulationType::QAM16: modName = "16QAM"; break;
+        case ReceiveModulationType::FM: modName = "FM"; break;
+        case ReceiveModulationType::AM: modName = "AM"; break;
+    }
+    
+    std::cout << modName << ": SNR要求=" << snrReq << "dB, 可解码=" 
+              << (canDecode ? "是" : "否") << std::endl;
+}
 ```
 
 #### 3. 通信干扰模型 (CommunicationJammerModel)
@@ -477,6 +547,13 @@ cmake --build . --target run_config_tests    # 配置测试
   - 整理测试文件到tests目录
   - 添加常量验证测试
   - 完善示例代码和文档
+- **v1.4.0** - 通信接收模型功能增强
+  - 添加可调整检测门限功能
+  - 实现智能信号解码判断 (支持无参和有参重载)
+  - 优化环境温度默认参数设置 (默认290K)
+  - 增强性能分析和参数信息输出
+  - 提供多种调制方式性能比较功能
+  - 保持完全向后兼容性
 
 ## 许可证
 
