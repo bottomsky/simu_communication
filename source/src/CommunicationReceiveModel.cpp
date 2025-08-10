@@ -299,11 +299,21 @@ bool CommunicationReceiveModel::isSignalDetectable() const {
     return receivedPower > calculateMinimumDetectablePower();
 }
 
-/// @brief 检查信号是否可解码
-/// @details 信号可解码条件：接收功率大于等于接收灵敏度
+/// @brief 检查信号是否可解码（指定SNR要求）
+/// @details 信号可解码条件：当前SNR大于等于要求的SNR
+/// @param required_snr 要求的信噪比(dB)
 /// @return 信号是否可解码
-bool CommunicationReceiveModel::isSignalDecodable(double required_snr ) const {
+bool CommunicationReceiveModel::isSignalDecodable(double required_snr) const {
     return calculateSignalToNoiseRatio() >= required_snr;
+}
+
+/// @brief 检查信号是否可解码（使用基于调制方式的默认SNR要求）
+/// @details 根据当前调制方式，使用1e-6误码率对应的SNR作为默认要求
+/// @return 信号是否可解码
+bool CommunicationReceiveModel::isSignalDecodable() const {
+    // 使用1e-6误码率对应的SNR作为默认要求，这是通信系统的典型性能指标
+    double default_required_snr = getRequiredSNRForBER(1e-6);
+    return isSignalDecodable(default_required_snr);
 }
 
 /// @brief 计算接收余量

@@ -99,7 +99,8 @@ public:
     
     // 接收性能评估
     bool isSignalDetectable() const;            // 判断信号是否可检测
-    bool isSignalDecodable(double required_snr = 10.0) const; // 判断信号是否可解码
+    bool isSignalDecodable(double required_snr) const; // 判断信号是否可解码（指定SNR要求）
+    bool isSignalDecodable() const;             // 判断信号是否可解码（使用基于调制方式的默认SNR要求）
     double calculateReceiveMargin() const;       // 计算接收余量(dB)
     
     // 调制方式相关的理论SNR要求
