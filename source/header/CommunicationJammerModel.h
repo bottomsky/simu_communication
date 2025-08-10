@@ -134,9 +134,11 @@ public:
     double getSweepRate() const;
     double getSweepRange() const;
 
+
+
     // 核心计算方法
-    double calculateJammerToSignalRatio() const;     // 计算干信比(dB)
-    double calculateJammingToSignalRatio() const;    // 计算干扰干信比(dB)
+    double calculatePulsePeakPower(double averagePower, double dutyCycle) const;    //计算脉冲干扰的峰值功率
+    double calculateJammerToSignalRatio() const;    // 计算干扰干信比(dB)
     double calculateJammerEffectiveness() const;     // 计算干扰有效性(0-1)
     double calculateCommunicationDegradation() const; // 计算通信性能下降率(0-1)
     JammerEffectLevel evaluateJammerEffect() const;  // 评估干扰效果等级

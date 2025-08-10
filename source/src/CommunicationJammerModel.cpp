@@ -246,7 +246,7 @@ double CommunicationJammerModel::calculateJammerEffectivePower() const {
 /// @brief 计算干扰干信比
 /// @details 干信比 = 有效干扰功率 - 目标信号功率
 /// @return 干信比(dB)
-double CommunicationJammerModel::calculateJammingToSignalRatio() const {
+double CommunicationJammerModel::calculateJammerToSignalRatio() const {
     // 计算到达目标的有效干扰功率
     double jammer_path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
     double effective_jammer_power = jammerPower - jammer_path_loss - atmosphericLoss;
@@ -259,14 +259,6 @@ double CommunicationJammerModel::calculateJammingToSignalRatio() const {
     return effective_jammer_power - received_signal_power;
 }
 
-
-/// @brief 计算干扰干信比
-/// @details 干信比 = 有效干扰功率 - 目标信号功率
-/// @return 干信比(dB)
-double CommunicationJammerModel::calculateJammerToSignalRatio() const {
-    double effective_jammer_power = calculateJammerEffectivePower();
-    return effective_jammer_power - targetPower;
-}
 
 /// @brief 计算干扰有效性
 /// @details 干扰有效性 = 干扰干信比 * 频率重叠度
@@ -291,6 +283,9 @@ double CommunicationJammerModel::calculateJammerEffectiveness() const {
     }
 }
 
+/// @brief 计算通信性能下降率
+/// @details 通信性能下降率 = 干扰有效性 * (1 - 干信比/10)
+/// @return 通信性能下降率(0-1)
 double CommunicationJammerModel::calculateCommunicationDegradation() const {
     double js_ratio = calculateJammerToSignalRatio();
     double effectiveness = calculateJammerEffectiveness();
@@ -303,6 +298,8 @@ double CommunicationJammerModel::calculateCommunicationDegradation() const {
     double degradation = effectiveness * (MathConstants::DEGRADATION_BASE - MathConstants::DEGRADATION_BASE / (MathConstants::DEGRADATION_BASE + std::pow(10.0, js_ratio / MathConstants::LINEAR_TO_DB_MULTIPLIER)));
     return std::min(degradation, MathConstants::MAX_DEGRADATION);
 }
+
+
 
 JammerEffectLevel CommunicationJammerModel::evaluateJammerEffect() const {
     double degradation = calculateCommunicationDegradation();
@@ -345,6 +342,9 @@ double CommunicationJammerModel::calculateSweepFrequencyEffect() const {
     return coverage * time_factor * power_factor;
 }
 
+/// @brief 计算脉冲干扰效果
+/// @details 脉冲干扰效果 = 占空比 * 脉冲功率 * 频率重叠度
+/// @return 脉冲干扰效果(dB)
 double CommunicationJammerModel::calculatePulseJammerEffect() const {
     // 脉冲干扰效果取决于占空比和脉冲功率
     double frequency_overlap = calculateFrequencyOverlap();
@@ -354,6 +354,22 @@ double CommunicationJammerModel::calculatePulseJammerEffect() const {
     return frequency_overlap * dutyCycle * power_factor;
 }
 
+
+
+
+/// @brief 计算脉冲干扰的峰值功率
+/// @param averagePower 平均功率（dBm）
+/// @param dutyCycle 占空比
+/// @return 峰值功率（dBm）
+double CommunicationJammerModel::calculatePulsePeakPower(double averagePower, double dutyCycle) const {
+    // 检查占空比有效性
+    if (dutyCycle <= 0 || dutyCycle > 1) {
+        return -1.0; // 无效占空比
+    }
+    
+    // 计算峰值功率（dBm）
+    return averagePower - 10 * log10(dutyCycle);
+}
 double CommunicationJammerModel::calculateBarrageJammerEffect() const {
     // 阻塞干扰效果主要取决于带宽覆盖和功率
     double bandwidth_ratio = jammerBandwidth / targetBandwidth;
