@@ -157,6 +157,15 @@ target_link_libraries(simple_receive_test
     gtest
 )
 
+# 常量测试
+add_executable(test_constants
+    test_constants.cpp
+)
+
+target_link_libraries(test_constants
+    CommunicationModel
+)
+
 # 集成测试
 add_executable(test_integration
     integration/test_basic_integration.cpp
@@ -217,6 +226,9 @@ add_test(NAME ReceiveParameterConfigTest COMMAND test_receive_parameter_config)
 
 # 简单测试
 add_test(NAME SimpleReceiveTest COMMAND simple_receive_test)
+
+# 常量测试
+add_test(NAME ConstantsTest COMMAND test_constants)
 
 # 集成测试
 add_test(NAME BasicIntegrationTest COMMAND test_integration)
@@ -281,6 +293,12 @@ set_tests_properties(SimpleReceiveTest PROPERTIES
     LABELS "unit;simple"
 )
 
+# 常量测试属性
+set_tests_properties(ConstantsTest PROPERTIES
+    TIMEOUT 30
+    LABELS "unit;constants"
+)
+
 # 集成测试属性
 set_tests_properties(BasicIntegrationTest PROPERTIES
     TIMEOUT 60
@@ -317,6 +335,7 @@ add_custom_target(run_all_tests
         test_jammer_parameter_config
         test_receive_parameter_config
         simple_receive_test
+        test_constants
         test_integration
         test_environment_loss_migration
         test_path_loss_migration
@@ -338,6 +357,7 @@ add_custom_target(run_unit_tests
         test_jammer_parameter_config
         test_receive_parameter_config
         simple_receive_test
+        test_constants
     COMMENT "运行单元测试"
 )
 

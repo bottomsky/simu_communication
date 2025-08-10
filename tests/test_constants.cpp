@@ -1,5 +1,5 @@
-#include "source/header/MathConstants.h"
-#include "source/header/CommunicationModelAPI.h"
+#include "../source/header/MathConstants.h"
+#include "../source/header/CommunicationModelAPI.h"
 #include <iostream>
 #include <iomanip>
 
