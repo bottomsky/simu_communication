@@ -2,7 +2,11 @@
 #define COMMUNICATION_MODEL_EXPORT_H
 
 // 跨平台导出宏定义
-#ifdef _WIN32
+#ifdef COMMUNICATION_MODEL_STATIC
+    // 静态库构建：不使用任何导入/导出修饰符
+    #define COMMUNICATION_MODEL_API
+    #define COMMUNICATION_MODEL_CALL
+#elif defined(_WIN32)
     #ifdef COMMUNICATION_MODEL_EXPORTS
         #define COMMUNICATION_MODEL_API __declspec(dllexport)
     #else

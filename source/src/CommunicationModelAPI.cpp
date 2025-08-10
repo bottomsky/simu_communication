@@ -596,3 +596,239 @@ std::string CommunicationModelAPI::getModelInfo() const {
     
     return oss.str();
 }
+
+bool CommunicationModelAPI::saveConfiguration(const std::string& filename) const {
+    // 保存配置到文件的实现
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        return false;
+    }
+    
+    file << "# Communication Model Configuration" << std::endl;
+    file << "frequency=" << environment_.frequency << std::endl;
+    file << "transmitPower=" << environment_.transmitPower << std::endl;
+    file << "bandwidth=" << environment_.bandwidth << std::endl;
+    file << "distance=" << environment_.distance << std::endl;
+    file << "environmentType=" << static_cast<int>(environment_.environmentType) << std::endl;
+    
+    file.close();
+    return true;
+}
+
+bool CommunicationModelAPI::loadConfiguration(const std::string& filename) {
+    // 从文件加载配置的实现
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        return false;
+    }
+    
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        
+        size_t pos = line.find('=');
+        if (pos != std::string::npos) {
+            std::string key = line.substr(0, pos);
+            std::string value = line.substr(pos + 1);
+            
+            if (key == "frequency") {
+                environment_.frequency = std::stod(value);
+            } else if (key == "transmitPower") {
+                environment_.transmitPower = std::stod(value);
+            } else if (key == "bandwidth") {
+                environment_.bandwidth = std::stod(value);
+            } else if (key == "distance") {
+                environment_.distance = std::stod(value);
+            } else if (key == "environmentType") {
+                environment_.environmentType = static_cast<EnvironmentType>(std::stoi(value));
+            }
+        }
+    }
+    
+    updateModelsFromEnvironment();
+    file.close();
+    return true;
+}
+
+std::string CommunicationModelAPI::exportConfigurationToJSON() const {
+    std::ostringstream oss;
+    oss << "{" << std::endl;
+    oss << "  \"frequency\": " << environment_.frequency << "," << std::endl;
+    oss << "  \"transmitPower\": " << environment_.transmitPower << "," << std::endl;
+    oss << "  \"bandwidth\": " << environment_.bandwidth << "," << std::endl;
+    oss << "  \"distance\": " << environment_.distance << "," << std::endl;
+    oss << "  \"environmentType\": " << static_cast<int>(environment_.environmentType) << std::endl;
+    oss << "}" << std::endl;
+    return oss.str();
+}
+
+bool CommunicationModelAPI::importConfigurationFromJSON(const std::string& jsonString) {
+    // 简单的JSON解析实现
+    try {
+        size_t pos = 0;
+        std::string json = jsonString;
+        
+        // 查找并解析frequency
+        pos = json.find("\"frequency\":");
+        if (pos != std::string::npos) {
+            pos = json.find(":", pos) + 1;
+            size_t end = json.find(",", pos);
+            if (end == std::string::npos) end = json.find("}", pos);
+            std::string value = json.substr(pos, end - pos);
+            environment_.frequency = std::stod(value);
+        }
+        
+        // 查找并解析transmitPower
+        pos = json.find("\"transmitPower\":");
+        if (pos != std::string::npos) {
+            pos = json.find(":", pos) + 1;
+            size_t end = json.find(",", pos);
+            if (end == std::string::npos) end = json.find("}", pos);
+            std::string value = json.substr(pos, end - pos);
+            environment_.transmitPower = std::stod(value);
+        }
+        
+        // 查找并解析bandwidth
+        pos = json.find("\"bandwidth\":");
+        if (pos != std::string::npos) {
+            pos = json.find(":", pos) + 1;
+            size_t end = json.find(",", pos);
+            if (end == std::string::npos) end = json.find("}", pos);
+            std::string value = json.substr(pos, end - pos);
+            environment_.bandwidth = std::stod(value);
+        }
+        
+        // 查找并解析distance
+        pos = json.find("\"distance\":");
+        if (pos != std::string::npos) {
+            pos = json.find(":", pos) + 1;
+            size_t end = json.find(",", pos);
+            if (end == std::string::npos) end = json.find("}", pos);
+            std::string value = json.substr(pos, end - pos);
+            environment_.distance = std::stod(value);
+        }
+        
+        // 查找并解析environmentType
+        pos = json.find("\"environmentType\":");
+        if (pos != std::string::npos) {
+            pos = json.find(":", pos) + 1;
+            size_t end = json.find(",", pos);
+            if (end == std::string::npos) end = json.find("}", pos);
+            std::string value = json.substr(pos, end - pos);
+            environment_.environmentType = static_cast<EnvironmentType>(std::stoi(value));
+        }
+        
+        updateModelsFromEnvironment();
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+std::string CommunicationModelAPI::getCapabilities() const {
+    std::ostringstream oss;
+    oss << "通信模型API功能列表:" << std::endl;
+    oss << "- 信号传输建模" << std::endl;
+    oss << "- 通信距离计算" << std::endl;
+    oss << "- 接收机性能分析" << std::endl;
+    oss << "- 干扰效果评估" << std::endl;
+    oss << "- 抗干扰技术支持" << std::endl;
+    oss << "- 多种环境类型支持" << std::endl;
+    oss << "- 性能优化算法" << std::endl;
+    oss << "- 网络连通性分析" << std::endl;
+    oss << "- 频率范围分析" << std::endl;
+    oss << "- 实时性能监控" << std::endl;
+    return oss.str();
+}
+
+std::string CommunicationModelAPI::generateDetailedReport() const {
+    std::ostringstream oss;
+    oss << "=== 通信模型详细报告 ===" << std::endl;
+    oss << "版本: " << getVersion() << std::endl;
+    oss << "构建信息: " << getBuildInfo() << std::endl;
+    oss << std::endl;
+    
+    oss << "当前环境参数:" << std::endl;
+    oss << "- 频率: " << environment_.frequency << " MHz" << std::endl;
+    oss << "- 带宽: " << environment_.bandwidth << " MHz" << std::endl;
+    oss << "- 发射功率: " << environment_.transmitPower << " dBm" << std::endl;
+    oss << "- 距离: " << environment_.distance << " km" << std::endl;
+    oss << "- 环境类型: " << static_cast<int>(environment_.environmentType) << std::endl;
+    oss << std::endl;
+    
+    auto status = calculateLinkStatus();
+    oss << "链路状态:" << std::endl;
+    oss << "- 信号强度: " << status.signalStrength << " dBm" << std::endl;
+    oss << "- 信噪比: " << status.signalToNoiseRatio << " dB" << std::endl;
+    oss << "- 误码率: " << status.bitErrorRate << std::endl;
+    oss << "- 吞吐量: " << status.throughput << " bps" << std::endl;
+    oss << "- 延迟: " << status.latency << " ms" << std::endl;
+    oss << "- 丢包率: " << status.packetLossRate << std::endl;
+    
+    return oss.str();
+}
+
+std::string CommunicationModelAPI::generatePerformanceReport() const {
+    std::ostringstream oss;
+    oss << "=== 性能分析报告 ===" << std::endl;
+    
+    auto status = calculateLinkStatus();
+    oss << "当前性能指标:" << std::endl;
+    oss << "- 信号强度: " << status.signalStrength << " dBm" << std::endl;
+    oss << "- 信噪比: " << status.signalToNoiseRatio << " dB" << std::endl;
+    oss << "- 误码率: " << status.bitErrorRate << std::endl;
+    oss << "- 吞吐量: " << status.throughput << " bps" << std::endl;
+    oss << "- 延迟: " << status.latency << " ms" << std::endl;
+    oss << "- 丢包率: " << status.packetLossRate << std::endl;
+    oss << std::endl;
+    
+    oss << "性能评估:" << std::endl;
+    if (status.signalToNoiseRatio > 20.0) {
+        oss << "- 信噪比: 优秀" << std::endl;
+    } else if (status.signalToNoiseRatio > 10.0) {
+        oss << "- 信噪比: 良好" << std::endl;
+    } else {
+        oss << "- 信噪比: 需要改善" << std::endl;
+    }
+    
+    if (status.bitErrorRate < 1e-6) {
+        oss << "- 误码率: 优秀" << std::endl;
+    } else if (status.bitErrorRate < 1e-3) {
+        oss << "- 误码率: 良好" << std::endl;
+    } else {
+        oss << "- 误码率: 需要改善" << std::endl;
+    }
+    
+    return oss.str();
+}
+
+std::string CommunicationModelAPI::generateJammingAnalysisReport() const {
+    std::ostringstream oss;
+    oss << "=== 干扰分析报告 ===" << std::endl;
+    
+    if (jammingEnv_.isJammed) {
+        oss << "干扰状态: 存在干扰" << std::endl;
+        oss << "干扰类型: " << static_cast<int>(jammingEnv_.jammerType) << std::endl;
+        oss << "干扰功率: " << jammingEnv_.jammerPower << " dBm" << std::endl;
+        oss << "干扰频率: " << jammingEnv_.jammerFrequency << " MHz" << std::endl;
+        oss << "干扰距离: " << jammingEnv_.jammerDistance << " km" << std::endl;
+        oss << std::endl;
+        
+        double jammerEffect = calculateJammerEffectiveness();
+        oss << "干扰效果分析:" << std::endl;
+        oss << "- 干扰有效性: " << jammerEffect << std::endl;
+        
+        double jsr = calculateJammerToSignalRatio();
+        oss << "- 干信比: " << jsr << " dB" << std::endl;
+        
+        if (currentScenario_ == CommunicationScenario::ANTI_JAM_COMMUNICATION) {
+            double antiJamEffect = calculateAntiJamEffectiveness();
+            oss << "- 抗干扰效果: " << antiJamEffect << std::endl;
+        }
+    } else {
+        oss << "干扰状态: 无干扰" << std::endl;
+        oss << "通信环境良好，无需抗干扰措施" << std::endl;
+    }
+    
+    return oss.str();
+}
