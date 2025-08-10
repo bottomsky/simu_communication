@@ -136,6 +136,7 @@ public:
 
     // 核心计算方法
     double calculateJammerToSignalRatio() const;     // 计算干信比(dB)
+    double calculateJammingToSignalRatio() const;    // 计算干扰干信比(dB)
     double calculateJammerEffectiveness() const;     // 计算干扰有效性(0-1)
     double calculateCommunicationDegradation() const; // 计算通信性能下降率(0-1)
     JammerEffectLevel evaluateJammerEffect() const;  // 评估干扰效果等级
@@ -149,6 +150,8 @@ public:
     double calculateSpotJammerEffect() const;        // 点频干扰效果
     
     // 干扰覆盖范围计算
+    double calculateJammingRange() const;            // 计算干扰有效覆盖范围(km)
+    double calculateJammingArea() const;             // 计算干扰覆盖面积(m²)
     double calculateJammerCoverage() const;          // 计算干扰覆盖范围(km²)
     bool isTargetInJammerRange() const;             // 判断目标是否在干扰范围内
     

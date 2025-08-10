@@ -1,5 +1,6 @@
 #include "../header/CommunicationJammerModel.h"
 #include "../header/CommunicationJammerParameterConfig.h"
+#include "../header/CommunicationDistanceModel.h"
 #include "../header/MathConstants.h"
 #include <sstream>
 #include <iomanip>
@@ -212,6 +213,9 @@ double CommunicationJammerModel::calculatePropagationLoss(double distance_km, do
     return CommunicationDistanceModel::calculateFreeSpacePathLoss(distance_km, freq_MHz);
 }
 
+/// @brief 计算频率重叠度
+/// @details 计算干扰频率与目标频率的重叠度
+/// @return 频率重叠度(0-1)
 double CommunicationJammerModel::calculateFrequencyOverlap() const {
     // 计算干扰频率与目标频率的重叠度
     double jammer_low = jammerFrequency - jammerBandwidth / MathConstants::BANDWIDTH_HALF_DIVISOR;
@@ -229,14 +233,32 @@ double CommunicationJammerModel::calculateFrequencyOverlap() const {
     double overlap_bandwidth = overlap_high - overlap_low;
     return overlap_bandwidth / targetBandwidth; // 重叠比例
 }
-/// @brief 计算干扰有效性
-/// @details 干扰有效性 = 干扰干信比 * 频率重叠度
-/// @return 干扰有效性(dB)
+
+/// @brief 计算干扰有效功率
+/// @details 计算到达目标的有效干扰功率
+/// @return 有效干扰功率(dBm)
 double CommunicationJammerModel::calculateJammerEffectivePower() const {
     // 计算到达目标的有效干扰功率
     double path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
     return jammerPower - path_loss - atmosphericLoss;
 }
+
+/// @brief 计算干扰干信比
+/// @details 干信比 = 有效干扰功率 - 目标信号功率
+/// @return 干信比(dB)
+double CommunicationJammerModel::calculateJammingToSignalRatio() const {
+    // 计算到达目标的有效干扰功率
+    double jammer_path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
+    double effective_jammer_power = jammerPower - jammer_path_loss - atmosphericLoss;
+    
+    // 计算目标接收的信号功率（需要获取目标信号相关参数）
+    double signal_path_loss = calculatePropagationLoss(targetDistance, targetFrequency);
+    double received_signal_power = targetPower - signal_path_loss - atmosphericLoss;
+    
+    // 计算干信比 (dB)：J/S = 有效干扰功率 - 接收信号功率
+    return effective_jammer_power - received_signal_power;
+}
+
 
 /// @brief 计算干扰干信比
 /// @details 干信比 = 有效干扰功率 - 目标信号功率
@@ -278,7 +300,7 @@ double CommunicationJammerModel::calculateCommunicationDegradation() const {
         return 0.0; // 干扰功率不足
     }
     
-    double degradation = effectiveness * (MathConstants::DEGRADATION_BASE - MathConstants::DEGRADATION_BASE / (MathConstants::DEGRADATION_BASE + pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, js_ratio / MathConstants::LINEAR_TO_DB_MULTIPLIER)));
+    double degradation = effectiveness * (MathConstants::DEGRADATION_BASE - MathConstants::DEGRADATION_BASE / (MathConstants::DEGRADATION_BASE + std::pow(10.0, js_ratio / MathConstants::LINEAR_TO_DB_MULTIPLIER)));
     return std::min(degradation, MathConstants::MAX_DEGRADATION);
 }
 
@@ -302,7 +324,7 @@ JammerEffectLevel CommunicationJammerModel::evaluateJammerEffect() const {
 double CommunicationJammerModel::calculateGaussianNoiseEffect() const {
     // 高斯白噪声干扰效果主要取决于功率和频率重叠
     double frequency_overlap = calculateFrequencyOverlap();
-    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, calculateJammerToSignalRatio() / MathConstants::FSPL_DISTANCE_COEFFICIENT));
+    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, calculateJammerToSignalRatio() / MathConstants::FSPL_DISTANCE_COEFFICIENT));
     return frequency_overlap * power_factor;
 }
 
@@ -310,7 +332,7 @@ double CommunicationJammerModel::calculateNarrowbandEffect() const {
     // 窄带干扰效果取决于频率精确度和功率
     double freq_diff = abs(jammerFrequency - targetFrequency);
     double freq_factor = exp(-freq_diff / targetBandwidth);
-    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, calculateJammerToSignalRatio() / MathConstants::LINEAR_TO_DB_MULTIPLIER));
+    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, calculateJammerToSignalRatio() / MathConstants::LINEAR_TO_DB_MULTIPLIER));
     return freq_factor * power_factor;
 }
 
@@ -319,7 +341,7 @@ double CommunicationJammerModel::calculateSweepFrequencyEffect() const {
     double coverage = std::min(MathConstants::MAX_COVERAGE, sweepRange * MathConstants::FREQUENCY_SCALE_FACTOR / targetBandwidth);
     double dwell_time = sweepRange / sweepRate; // 扫频周期
     double time_factor = std::min(MathConstants::MAX_TIME_FACTOR, targetBandwidth / (sweepRange * MathConstants::FREQUENCY_SCALE_FACTOR));
-    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, calculateJammerToSignalRatio() / MathConstants::PULSE_POWER_DIVISOR));
+    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, calculateJammerToSignalRatio() / MathConstants::PULSE_POWER_DIVISOR));
     return coverage * time_factor * power_factor;
 }
 
@@ -328,7 +350,7 @@ double CommunicationJammerModel::calculatePulseJammerEffect() const {
     double frequency_overlap = calculateFrequencyOverlap();
     double pulse_power = jammerPower + MathConstants::LINEAR_TO_DB_MULTIPLIER * log10(MathConstants::PULSE_POWER_BASE / dutyCycle); // 脉冲峰值功率
     double effective_power = pulse_power - calculatePropagationLoss(targetDistance, jammerFrequency);
-    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, (effective_power - targetPower) / MathConstants::LINEAR_TO_DB_MULTIPLIER));
+    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, (effective_power - targetPower) / MathConstants::LINEAR_TO_DB_MULTIPLIER));
     return frequency_overlap * dutyCycle * power_factor;
 }
 
@@ -336,7 +358,7 @@ double CommunicationJammerModel::calculateBarrageJammerEffect() const {
     // 阻塞干扰效果主要取决于带宽覆盖和功率
     double bandwidth_ratio = jammerBandwidth / targetBandwidth;
     double coverage = std::min(MathConstants::MAX_COVERAGE, bandwidth_ratio);
-    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, calculateJammerToSignalRatio() / MathConstants::BARRAGE_POWER_DIVISOR));
+    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, calculateJammerToSignalRatio() / MathConstants::BARRAGE_POWER_DIVISOR));
     return coverage * power_factor;
 }
 
@@ -344,32 +366,74 @@ double CommunicationJammerModel::calculateSpotJammerEffect() const {
     // 点频干扰效果类似窄带干扰但更精确
     return std::min(MathConstants::MAX_SPOT_EFFECT, calculateNarrowbandEffect() * MathConstants::SPOT_ENHANCEMENT_FACTOR); // 点频干扰效果稍好，但不超过1.0
 }
-/// @brief  计算频谱干扰效果
-/// @details 频谱干扰效果 = 干扰功率 - 目标信号功率 - 大气损耗
-/// @return 频谱干扰效果(dB)
-double CommunicationJammerModel::calculateJammerCoverage() const {
-    // 简化的覆盖范围计算，基于干扰功率和最小有效干信比
-    double min_js_ratio = MathConstants::MIN_EFFECTIVE_JS_RATIO; // 最小有效干信比10dB
-    double required_power_at_target = targetPower + min_js_ratio;
-    double max_path_loss = jammerPower - required_power_at_target - atmosphericLoss;
+
+/// @brief 计算干扰覆盖面积
+/// @details 基于圆形覆盖范围计算面积
+/// @return 覆盖面积(m²)
+double CommunicationJammerModel::calculateJammingArea() const {
+    double radius = calculateJammingRange();
+    if (radius <= 0) {
+        return 0.0; // 无有效覆盖
+    }
+    return MathConstants::PI  * radius * radius; // 圆面积公式
+}
+
+/// @brief 计算干扰有效覆盖范围
+/// @details 根据干扰机功率、目标最小干信比要求和传播模型，计算圆形覆盖半径
+/// @return 干扰覆盖半径(km)，返回-1表示计算失败
+double CommunicationJammerModel::calculateJammingRange() const {
+    // 1. 参数有效性检查
+    if (this->jammerPower < 0 || this->targetPower < 0 ||
+        this->targetFrequency <= 0 || this->jammerFrequency <= 0) {
+        return -1.0; // 无效参数返回错误
+    }
+
+    // 2. 计算到达目标的有效干扰功率需满足的条件
+    // 干信比(J/S)要求：有效干扰功率 - 目标接收功率 ≥ 最小干信比
+    // 假设最小干信比为10dB（可以作为参数传入或配置）
+    double minRequiredJsRatio = 10.0; // dB
+    double requiredJammerPowerAtTarget = this->targetPower + minRequiredJsRatio;
+
+    // 3. 计算最大允许的路径损耗
+    // 有效干扰功率 = 干扰机发射功率 - 路径损耗 - 大气损耗
+    // 推导得：路径损耗 ≤ 干扰机发射功率 - 大气损耗 - 所需干扰功率
+    // 假设大气损耗为2dB（可以作为参数传入或配置）
+    double atmosphericLoss = 2.0; // dB
+    double maxAllowedPathLoss = this->jammerPower - atmosphericLoss - requiredJammerPowerAtTarget;
     
-    // 根据自由空间传播损耗反推最大距离
-    double freq_MHz = jammerFrequency / MathConstants::HZ_TO_MHZ_CONVERSION;
-    double max_distance = pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, (max_path_loss - MathConstants::FSPL_CONSTANT - MathConstants::FSPL_DISTANCE_COEFFICIENT * log10(freq_MHz)) / MathConstants::FSPL_DISTANCE_COEFFICIENT);
+    if (maxAllowedPathLoss < 0) {
+        return 0.0; // 路径损耗为负，说明无有效覆盖范围
+    }
+
+    // 4. 使用CommunicationDistanceModel的距离计算方法
+    // 频率转换为MHz (jammerFrequency是kHz，需要除以1000)
+    double freqMHz = this->jammerFrequency / 1000.0;
+    if (freqMHz <= 0) {
+        return -1.0; // 无效频率
+    }
+
+    // 使用CommunicationDistanceModel的静态方法计算距离
+    double distanceKm = CommunicationDistanceModel::calculateDistanceFromPathLoss(maxAllowedPathLoss, freqMHz);
     
-    return MathConstants::PI * max_distance * max_distance; // 圆形覆盖面积
+    if (distanceKm < 0) {
+        return -1.0; // 计算失败
+    }
+    
+    // 确保距离为合理正值
+    return distanceKm;
 }
 
 bool CommunicationJammerModel::isTargetInJammerRange() const {
-    return targetDistance <= jammerRange;
+    return this->targetDistance <= this->jammerRange;
 }
 
 /// @brief 计算所需干扰功率
 /// @details 所需干扰功率 = 目标信号功率 +  desired_js_ratio + 路径损耗 + 大气损耗
 /// @return 所需干扰功率(dBm)
 double CommunicationJammerModel::calculateRequiredJammerPower(double desired_js_ratio) const {
-    double path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
-    return targetPower + desired_js_ratio + path_loss + atmosphericLoss;
+    double path_loss = calculatePropagationLoss(this->targetDistance, this->jammerFrequency);
+    double atmosphericLoss = 2.0; // dB - 假设大气损耗为2dB
+    return this->targetPower + desired_js_ratio + path_loss + atmosphericLoss;
 }
 
 /// @brief 计算最优干扰频率
@@ -377,7 +441,7 @@ double CommunicationJammerModel::calculateRequiredJammerPower(double desired_js_
 /// @return 最优干扰频率(kHz)
 double CommunicationJammerModel::calculateOptimalJammerFrequency() const {
     // 最优干扰频率通常是目标信号的中心频率
-    return targetFrequency;
+    return this->targetFrequency;
 }
 
 /// @brief 计算多干扰机协同效果
@@ -389,15 +453,15 @@ double CommunicationJammerModel::calculateCombinedJammerEffect(
     double total_jammer_power = 0.0;
     
     for (const auto& jammer : jammers) {
-        double jammer_power_linear = pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, jammer.calculateJammerEffectivePower() / MathConstants::LINEAR_TO_DB_MULTIPLIER);
+        double jammer_power_linear = std::pow(10.0, jammer.calculateJammerEffectivePower() / MathConstants::LINEAR_TO_DB_MULTIPLIER);
         double effectiveness = jammer.calculateJammerEffectiveness();
         total_jammer_power += jammer_power_linear * effectiveness;
     }
     
     double total_jammer_power_dBm = MathConstants::LINEAR_TO_DB_MULTIPLIER * log10(total_jammer_power);
-    double combined_js_ratio = total_jammer_power_dBm - targetPower;
+    double combined_js_ratio = total_jammer_power_dBm - this->targetPower;
     
-    return std::min(MathConstants::MAX_COMBINED_EFFECT, MathConstants::COMBINED_EFFECT_BASE - MathConstants::COMBINED_EFFECT_BASE / (MathConstants::COMBINED_EFFECT_BASE + pow(MathConstants::LINEAR_TO_DB_MULTIPLIER, combined_js_ratio / MathConstants::LINEAR_TO_DB_MULTIPLIER)));
+    return std::min(MathConstants::MAX_COMBINED_EFFECT, MathConstants::COMBINED_EFFECT_BASE - MathConstants::COMBINED_EFFECT_BASE / (MathConstants::COMBINED_EFFECT_BASE + std::pow(10.0, combined_js_ratio / MathConstants::LINEAR_TO_DB_MULTIPLIER)));
 }
 
 // 信息输出方法实现
