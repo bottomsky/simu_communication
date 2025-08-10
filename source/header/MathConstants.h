@@ -893,6 +893,12 @@ namespace MathConstants {
     
     /// @brief 默认信号功率 30.0 dBm
     constexpr double DEFAULT_SIGNAL_POWER = 30.0;
+    
+    /// @brief 默认编码增益 3.0 dB
+    constexpr double DEFAULT_CODING_GAIN = 3.0;
+    
+    /// @brief 默认跳频速率 1000.0 hops/s
+    constexpr double DEFAULT_HOPPING_RATE = 1000.0;
 
     // ==================== 抗干扰模型计算常量 ====================
     
