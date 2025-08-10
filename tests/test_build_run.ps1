@@ -1,8 +1,33 @@
 ﻿# 通信模型测试构建和运行脚本
 # 该脚本执行从CMake配置到运行测试的完整流程
 
+param(
+    [Alias("c")]
+    [switch]$CleanBuild = $false,
+    [switch]$Help
+)
+
+# 显示帮助信息
+if ($Help) {
+    Write-Host "通信模型测试构建和运行脚本" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "用法:" -ForegroundColor Yellow
+    Write-Host "  .\test_build_run.ps1 [-CleanBuild|-c] [-Help]" -ForegroundColor White
+    Write-Host ""
+    Write-Host "参数:" -ForegroundColor Yellow
+    Write-Host "  -CleanBuild, -c    清空build目录缓存后重新构建 (默认: false)" -ForegroundColor White
+    Write-Host "  -Help              显示此帮助信息" -ForegroundColor White
+    Write-Host ""
+    Write-Host "示例:" -ForegroundColor Yellow
+    Write-Host "  .\test_build_run.ps1                # 增量构建" -ForegroundColor White
+    Write-Host "  .\test_build_run.ps1 -CleanBuild    # 清空缓存后重新构建" -ForegroundColor White
+    Write-Host "  .\test_build_run.ps1 -c             # 清空缓存后重新构建 (简写)" -ForegroundColor White
+    exit 0
+}
+
 Write-Host "=== 通信模型测试构建和运行脚本 ===" -ForegroundColor Green
 Write-Host "开始时间: $(Get-Date)" -ForegroundColor Yellow
+Write-Host "清空构建缓存: $CleanBuild" -ForegroundColor Yellow
 
 # 设置错误处理
 $ErrorActionPreference = "Stop"
@@ -10,17 +35,19 @@ $ErrorActionPreference = "Stop"
 # 确保在build目录中执行
 $buildDir = Join-Path $PSScriptRoot "build"
 
-# 清除build目录缓存
-if (Test-Path $buildDir) {
+# 根据参数决定是否清除build目录缓存
+if ($CleanBuild -and (Test-Path $buildDir)) {
     Write-Host "清除build目录缓存..." -ForegroundColor Yellow
-    # 保留CMakeLists.txt文件，删除其他所有内容
+    # 保留CMakeLists.txt和CMakeCache.txt文件，删除其他所有内容
     $cmakeListsFile = Join-Path $buildDir "CMakeLists.txt"
+    $cmakeCacheFile = Join-Path $PSScriptRoot "CMakeCache.txt"
     $hasCMakeLists = Test-Path $cmakeListsFile
+    $hasCMakeCache = Test-Path $cmakeCacheFile
     
     if ($hasCMakeLists) {
         # 临时备份CMakeLists.txt
-        $tempFile = Join-Path $env:TEMP "CMakeLists_backup.txt"
-        Copy-Item $cmakeListsFile $tempFile -Force
+        $tempListsFile = Join-Path $env:TEMP "CMakeLists_backup.txt"
+        Copy-Item $cmakeListsFile $tempListsFile -Force
     }
     
     # 删除build目录中的所有内容
@@ -28,15 +55,29 @@ if (Test-Path $buildDir) {
     
     if ($hasCMakeLists) {
         # 恢复CMakeLists.txt
-        Copy-Item $tempFile $cmakeListsFile -Force
-        Remove-Item $tempFile -Force
+        Copy-Item $tempListsFile $cmakeListsFile -Force
+        Remove-Item $tempListsFile -Force
         Write-Host "已保留CMakeLists.txt文件" -ForegroundColor Green
     }
     
+    if ($hasCMakeCache) {
+        # 复制CMakeCache.txt到build目录
+        $buildCacheFile = Join-Path $buildDir "CMakeCache.txt"
+        Copy-Item $cmakeCacheFile $buildCacheFile -Force
+        Write-Host "已复制CMakeCache.txt文件到build目录" -ForegroundColor Green
+    }
+    
     Write-Host "build目录缓存清除完成" -ForegroundColor Green
-} else {
+} elseif ($CleanBuild) {
+    Write-Host "build目录不存在，将创建新目录" -ForegroundColor Yellow
+}
+
+# 确保build目录存在
+if (-not (Test-Path $buildDir)) {
     Write-Host "创建build目录..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Path $buildDir -Force
+} elseif (-not $CleanBuild) {
+    Write-Host "使用现有build目录进行增量构建..." -ForegroundColor Yellow
 }
 
 Write-Host "切换到build目录: $buildDir" -ForegroundColor Yellow
