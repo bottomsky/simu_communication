@@ -9,7 +9,32 @@ $ErrorActionPreference = "Stop"
 
 # 确保在build目录中执行
 $buildDir = Join-Path $PSScriptRoot "build"
-if (-not (Test-Path $buildDir)) {
+
+# 清除build目录缓存
+if (Test-Path $buildDir) {
+    Write-Host "清除build目录缓存..." -ForegroundColor Yellow
+    # 保留CMakeLists.txt文件，删除其他所有内容
+    $cmakeListsFile = Join-Path $buildDir "CMakeLists.txt"
+    $hasCMakeLists = Test-Path $cmakeListsFile
+    
+    if ($hasCMakeLists) {
+        # 临时备份CMakeLists.txt
+        $tempFile = Join-Path $env:TEMP "CMakeLists_backup.txt"
+        Copy-Item $cmakeListsFile $tempFile -Force
+    }
+    
+    # 删除build目录中的所有内容
+    Get-ChildItem $buildDir -Force | Remove-Item -Recurse -Force
+    
+    if ($hasCMakeLists) {
+        # 恢复CMakeLists.txt
+        Copy-Item $tempFile $cmakeListsFile -Force
+        Remove-Item $tempFile -Force
+        Write-Host "已保留CMakeLists.txt文件" -ForegroundColor Green
+    }
+    
+    Write-Host "build目录缓存清除完成" -ForegroundColor Green
+} else {
     Write-Host "创建build目录..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Path $buildDir -Force
 }
