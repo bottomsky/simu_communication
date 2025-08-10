@@ -173,6 +173,32 @@ double CommunicationDistanceModel::calculateFreeSpacePathLoss(double distance_km
     return fspl;
 }
 
+/// @brief 计算路径损耗对应的距离
+/// @param pathLoss_dB 路径损耗(dB)
+/// @param frequency_MHz 频率(MHz)
+/// @return 距离(km)
+double CommunicationDistanceModel::calculateDistanceFromPathLoss(double pathLoss_dB, double frequency_MHz) {
+    if (pathLoss_dB < 0.0 || frequency_MHz <= 0.0) {
+        return -1.0; // 无效参数返回错误
+    }
+    
+    // 自由空间损耗公式：L = 20log10(d) + 20log10(f) + 32.45
+    // 其中：L为损耗(dB)，d为距离(km)，f为频率(MHz)
+    // 转换为距离计算：d(km) = 10^[(L - 20log10(f) - 32.45)/20]
+    
+    // 计算对数项
+    double logFreq = std::log10(frequency_MHz);
+    if (std::isnan(logFreq) || std::isinf(logFreq)) {
+        return -1.0; // 对数计算异常
+    }
+
+    // 计算距离（单位：km）
+    double distanceKm = std::pow(10.0, (pathLoss_dB - MathConstants::FSPL_CONSTANT - MathConstants::FSPL_DISTANCE_COEFFICIENT * logFreq) / MathConstants::FSPL_DISTANCE_COEFFICIENT);
+    
+    // 确保距离为合理正值
+    return (distanceKm > 0) ? distanceKm : 0.0;
+}
+
 // 计算路径损耗实现（包含环境因子）
 double CommunicationDistanceModel::calculatePathLoss(double distance_km, double frequency_MHz) const {
     if (distance_km <= 0.0 || frequency_MHz <= 0.0) {

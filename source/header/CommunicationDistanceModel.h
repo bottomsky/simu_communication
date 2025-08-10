@@ -76,6 +76,9 @@ public:
     // 计算自由空间路径损耗
     static double calculateFreeSpacePathLoss(double distance_km, double frequency_MHz);
     
+    // 根据自由空间路径损耗反推距离
+    static double calculateDistanceFromPathLoss(double pathLoss_dB, double frequency_MHz);
+    
     // 计算总路径损耗（包含环境因子）
     double calculateTotalPathLoss(double distance_km, double frequency_MHz) const;
     
