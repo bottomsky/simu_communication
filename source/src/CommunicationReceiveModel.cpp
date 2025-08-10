@@ -10,7 +10,7 @@ CommunicationReceiveModel::CommunicationReceiveModel(
     double sensitivity, double nf, double bandwidth,
     ReceiveModulationType mod, ReceiverType receiver,
     double temp, double antGain)
-    : modType(mod), receiverType(receiver), receivedPower(-120.0), noiseFloor(-120.0) {
+    : modType(mod), receiverType(receiver), receivedPower(-120.0), noiseFloor(-120.0), detectionThreshold(10.0) {
     
     if (!CommunicationReceiveParameterConfig::isReceiveSensitivityValid(sensitivity)) {
         auto range = CommunicationReceiveParameterConfig::getReceiveSensitivityRange();
@@ -63,6 +63,11 @@ bool CommunicationReceiveModel::isTemperatureValid(double temp_K) const {
 
 bool CommunicationReceiveModel::isAntennaGainValid(double gain_dBi) const {
     return CommunicationReceiveParameterConfig::isAntennaGainValid(gain_dBi);
+}
+
+bool CommunicationReceiveModel::isDetectionThresholdValid(double threshold_dB) const {
+    // 检测门限通常在0-30dB范围内，过低会增加虚警率，过高会降低检测概率
+    return (threshold_dB >= 0.0 && threshold_dB <= 30.0);
 }
 
 // 参数设置方法实现
@@ -122,6 +127,14 @@ bool CommunicationReceiveModel::setAntennaGain(double gain_dBi) {
     return true;
 }
 
+bool CommunicationReceiveModel::setDetectionThreshold(double threshold_dB) {
+    if (!isDetectionThresholdValid(threshold_dB)) {
+        return false;
+    }
+    detectionThreshold = threshold_dB;
+    return true;
+}
+
 bool CommunicationReceiveModel::setReceivedPower(double power_dBm) {
     if (!CommunicationReceiveParameterConfig::isReceivedPowerValid(power_dBm)) {
         return false;
@@ -161,6 +174,10 @@ double CommunicationReceiveModel::getAntennaGain() const {
 
 double CommunicationReceiveModel::getReceivedPower() const {
     return receivedPower;
+}
+
+double CommunicationReceiveModel::getDetectionThreshold() const {
+    return detectionThreshold;
 }
 
 /// @brief 计算热噪声功率
@@ -267,11 +284,11 @@ double CommunicationReceiveModel::calculateEffectiveNoisePower() const {
 }
 
 /// @brief 计算最小可检测功率
-/// @details 最小可检测功率 = 噪声底 + 检测门限(通常10dB)
+/// @details 最小可检测功率 = 噪声底 + 检测门限(可调整)
 /// @return 最小可检测功率(dBm)
 double CommunicationReceiveModel::calculateMinimumDetectablePower() const {
-    // 最小可检测功率 = 噪声底 + 检测门限(通常10dB)
-    return noiseFloor + 10.0;
+    // 最小可检测功率 = 噪声底 + 检测门限(可通过setDetectionThreshold调整)
+    return noiseFloor + detectionThreshold;
 }
 
 // 接收性能评估方法实现
@@ -372,6 +389,7 @@ std::string CommunicationReceiveModel::getParameterInfo() const {
     
     oss << "环境温度: " << ambientTemperature << " K\n";
     oss << "天线增益: " << antennaGain << " dBi\n";
+    oss << "检测门限: " << detectionThreshold << " dB\n";
     oss << "噪声底: " << noiseFloor << " dBm\n";
     
     return oss.str();

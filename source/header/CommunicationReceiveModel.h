@@ -38,6 +38,7 @@ private:
     // 信号参数
     double receivedPower;       // 接收信号功率(dBm)
     double noiseFloor;          // 噪声底(dBm)
+    double detectionThreshold;  // 检测门限(dB)，默认10dB
     
     // 常量定义
     static constexpr double THERMAL_NOISE_DENSITY = -174.0; // 热噪声密度(dBm/Hz)
@@ -48,6 +49,7 @@ private:
     bool isBandwidthValid(double bandwidth_kHz) const;
     bool isTemperatureValid(double temp_K) const;
     bool isAntennaGainValid(double gain_dBi) const;
+    bool isDetectionThresholdValid(double threshold_dB) const;
 
     // 内部计算方法
     double calculateThermalNoise() const;
@@ -73,6 +75,7 @@ public:
     void setReceiverType(ReceiverType receiver);
     bool setAmbientTemperature(double temp_K);
     bool setAntennaGain(double gain_dBi);
+    bool setDetectionThreshold(double threshold_dB);
     
     // 信号设置方法
     bool setReceivedPower(double power_dBm);
@@ -86,6 +89,7 @@ public:
     double getAmbientTemperature() const;
     double getAntennaGain() const;
     double getReceivedPower() const;
+    double getDetectionThreshold() const;
 
     // 核心计算方法
     double calculateSignalToNoiseRatio() const;  // 计算信噪比(dB)
