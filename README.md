@@ -35,11 +35,19 @@
 ## 技术特性
 
 - **🔧 开发语言**: C++17标准
-- **🏗️ 构建系统**: CMake 3.16+ 跨平台构建
+- **🏗️ 构建系统**: CMake 3.16+ 跨平台构建，支持Visual Studio 2022和GCC
+- **📦 库架构**: 提供三种库形式
+  - **CommunicationModelShared**: C++核心动态库
+  - **CommunicationModelStatic**: C++静态库
+  - **CommunicationModelCAPI**: C风格API动态库（支持多语言调用）
+- **🌐 跨平台**: 支持Windows (VS2022) 和Linux (GCC)
+- **🔗 多语言支持**: 
+  - **C++**: 直接使用核心库
+  - **C#**: 通过P/Invoke调用C API
+  - **Python**: 通过ctypes加载动态库
+  - **Java**: 通过JNA调用原生库
 - **📊 数据格式**: JSON格式的配置和测试数据
-- **🌐 跨平台**: 支持Windows和Linux平台
-- **📚 API接口**: 提供C风格API，支持外部语言调用
-- **🧪 测试驱动**: 完整的单元测试、集成测试和验证数据
+- **🧪 测试体系**: 完整的单元测试、集成测试和验证数据
 - **🔍 测试框架**: 集成Google Test框架
 - **📈 代码质量**: 严格的编译警告和代码规范
 - **🎯 模块化设计**: 清晰的模块分离和接口设计
@@ -47,16 +55,17 @@
 - **⚙️ 参数优化**: 提供默认参数配置，支持快速开始和精细调优
 - **📊 性能分析**: 全面的性能指标计算，包括SNR、BER、噪声功率等
 - **🔄 向后兼容**: 新功能保持与现有代码的完全兼容性
+- **📦 安装支持**: 标准化安装规则，支持CMake目标导出
 
 ## 项目结构
 
 ```
 signal-transmission-model-cpp/
-├── build/                          # 构建目录
-│   ├── CMakeLists.txt              # 主CMake配置文件
-│   ├── bin/                        # 可执行文件输出
-│   ├── lib/                        # 库文件输出
-│   └── [构建生成文件]               # 编译生成的中间文件
+├── build/                          # 构建目录（版本库仅保留 CMakeLists.txt）
+│   ├── CMakeLists.txt              # 主CMake配置文件（位于 build/）
+│   ├── bin/                        # 可执行文件输出（被 .gitignore 忽略）
+│   ├── lib/                        # 库文件输出（被 .gitignore 忽略）
+│   └── [构建生成文件]               # 编译中间文件（被 .gitignore 忽略）
 ├── docs/                           # 技术文档
 │   ├── data/                       # 测试数据
 │   ├── 基础通信能力模型参数设计.md
@@ -109,33 +118,41 @@ signal-transmission-model-cpp/
    cd signal-transmission-model-cpp
    ```
 
-2. **进入构建目录**
-   ```bash
-   cd build
-   ```
+2. **构建与编译（推荐脚本）**
+   - Windows（VS2022，多配置生成器）
+     ```powershell
+     # 在项目根目录执行
+     .\build_from_build_cmakelists.ps1 -Config Debug -Jobs 8 -Clean
+     .\build_from_build_cmakelists.ps1 -Config Release -Jobs 8
+     ```
+     说明：
+     - `-Config` 指定构建类型（Debug/Release/RelWithDebInfo/MinSizeRel）。
+     - `-Jobs` 指定并行编译的任务数（传给 cmake --build 的 -j）。
+     - `-Clean` 可选，先清理 build 目录后再重新生成。
 
-3. **配置项目**
-   ```bash
-   # 配置项目（CMakeLists.txt 位于 build 目录）
-   cmake -S . -B . -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
-   ```
+   - Linux（GCC，单配置生成器）
+     ```bash
+     # 在项目根目录执行
+     cmake -S build -B build -DCMAKE_BUILD_TYPE=Release
+     cmake --build build -j 8
+     ```
 
-4. **编译项目**
-   ```bash
-   # Linux/macOS
-   cmake --build . --config Release
-   
-   # Windows (Visual Studio)
-   cmake --build . --config Release
-   ```
+3. **手动使用CMake（可选）**
+   - 多配置生成器（如 VS2022）：忽略 CMAKE_BUILD_TYPE，使用 --config 控制
+     ```powershell
+     cmake -S build -B build
+     cmake --build build --config Release -j 8
+     ```
+   - 单配置生成器（如 Ninja/Unix Makefiles）：使用 CMAKE_BUILD_TYPE 控制
+     ```bash
+     cmake -S build -B build -DCMAKE_BUILD_TYPE=Debug
+     cmake --build build -j 8
+     ```
 
-5. **运行测试**
+4. **运行测试**
    ```bash
-   # 运行所有测试
+   # 运行所有测试（如已集成）
    ctest -C Release --output-on-failure
-   
-   # 或运行特定测试
-   ./bin/Release/test_constants.exe
    ```
 
 ## 使用示例
@@ -423,23 +440,31 @@ std::cout << "误码率: " << performance.bitErrorRate << std::endl;
 std::cout << "延迟: " << performance.latency << " ms" << std::endl;
 ```
 
-### 外部语言调用 (Python示例)
+### 外部语言调用
 
-```python
-import ctypes
+- Python（ctypes）
+  ```python
+  import ctypes, os, sys
+  base = os.path.join('build', 'bin') if os.name == 'nt' else os.path.join('build', 'lib')
+  libname = 'CommunicationModelCAPI.dll' if os.name == 'nt' else 'libCommunicationModelCAPI.so'
+  lib = ctypes.CDLL(os.path.join(base, libname))
+  
+  # 示例：获取版本信息
+  buf = ctypes.create_string_buffer(128)
+  rc = lib.CommModel_GetVersion(buf, len(buf))
+  if rc == 0:
+      print('Version:', buf.value.decode())
+  else:
+      print('GetVersion failed, rc=', rc)
+  ```
 
-# 加载动态库
-lib = ctypes.CDLL('./lib/CommunicationModel.dll')  # Windows
-# lib = ctypes.CDLL('./lib/libCommunicationModel.so')  # Linux
+- C#（P/Invoke）
+  - 参见 examples/csharp，示例工程以 DllImport("CommunicationModelCAPI") 方式引用
+  - 运行前确保 CommunicationModelCAPI.dll 位于输出目录，可从 build/bin 或 build/lib 复制
 
-# 调用C API
-result = lib.calculate_communication_distance(
-    ctypes.c_double(10.0),  # maxLineOfSight
-    ctypes.c_double(20.0),  # transmitPower
-    ctypes.c_int(1)         # environmentType
-)
-print(f"通信距离: {result} km")
-```
+- C++（链接核心库）
+  - 引用目标 CommunicationModel::Core 或 CommunicationModelShared
+  - 头文件从 include/CommunicationModel（安装后）或 source/header（源码构建）获取
 
 ## 测试体系
 
@@ -554,6 +579,13 @@ cmake --build . --target run_config_tests    # 配置测试
   - 增强性能分析和参数信息输出
   - 提供多种调制方式性能比较功能
   - 保持完全向后兼容性
+- **v1.5.0** - 跨语言与安装支持
+  - 新增 C API 动态库目标 CommunicationModelCAPI，支持 Python/C#/Java 调用
+  - Windows 下为核心动态库开启自动导出符号（WINDOWS_EXPORT_ALL_SYMBOLS）
+  - 增加 CMake 安装规则与目标导出（install(EXPORT ...)），便于外部项目复用
+  - 提供 CommunicationModel::Core 与 CommunicationModel::CAPI 别名
+  - 新增和优化构建脚本 build_from_build_cmakelists.ps1（支持 -Config/-Jobs/-Clean、彩色日志、错误码检查）
+  - 规范 .gitignore：忽略 build 目录下所有内容但保留 build/CMakeLists.txt
 
 ## 许可证
 
