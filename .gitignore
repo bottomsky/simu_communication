@@ -1,5 +1,6 @@
-# 构建目录 - 整个构建目录及其内容
-build/
+# 构建目录 - 忽略构建目录中的所有文件，但保留 CMakeLists.txt
+build/*
+!build/CMakeLists.txt
 tests/build/
 
 # 编译生成的目标文件
