@@ -86,8 +86,10 @@ signal-transmission-model-cpp/
 │       └── CommunicationModelCAPI.cpp       # C风格API实现
 ├── examples/
 │   └── csharp/
-│       ├── CommunicationModelWrapper.cs     # C#包装类
-│       ├── Program.cs                       # C#示例程序
+│       ├── CommunicationModelWrapper.cs     # C#包装类（P/Invoke 封装）
+│       ├── Program.cs                       # C#示例程序（支持 --interop-test 入口）
+│       ├── Tests/
+│       │   └── InteropTests.cs              # C#/C++ 互操作与内存布局一致性测试
 │       └── CommunicationModelExample.csproj # C#项目文件
 ├── cmake/
 │   └── CommunicationModelConfig.cmake       # CMake配置文件
@@ -319,83 +321,114 @@ C# 示例位于 `examples/csharp/` 目录，使用 P/Invoke 调用 C API。
 
 **基础使用示例：**
 
+C# 示例位于 `examples/csharp/` 目录，包含完整的 P/Invoke 包装器和互操作性测试。
+
 ```csharp
 using System;
-using CommunicationModelWrapper;
-
-var wrapper = new CommunicationModelWrapper();
+using CommunicationModel;
 
 // 创建模型实例
-IntPtr model = wrapper.CommModel_Create();
-if (model == IntPtr.Zero) {
-    Console.WriteLine("模型创建失败");
-    return;
-}
+using var api = new CommunicationModelAPI();
 
 // 获取版本信息
-var version = wrapper.CommModel_GetVersion(model);
+var version = CommunicationModelAPI.GetVersion();
 Console.WriteLine($"模型版本: {version}");
 
-// 销毁模型
-wrapper.CommModel_Destroy(model);
+// 获取构建信息
+var build = CommunicationModelAPI.GetBuildInfo();
+Console.WriteLine($"构建信息: {build}");
 ```
 
 **干扰分析示例：**
 
 ```csharp
-// 设置干扰参数
-wrapper.CommModel_SetJammerType(model, JammerType.GAUSSIAN_NOISE);
-wrapper.CommModel_SetJammerPower(model, 30.0);
+using var api = new CommunicationModelAPI();
+
+// 设置干扰环境
+var jammingEnv = new CommJammingEnvironment
+{
+    IsJammed = 1,
+    JammerType = CommJammerType.GaussianNoise,
+    JammerPower = 30.0,
+    JammerFrequency = 2.4e9,
+    JammerBandwidth = 50e6,
+    JammerDistance = 500.0,
+    JammerDensity = 1.0,
+    JammerFrequencies = IntPtr.Zero,
+    JammerFrequencyCount = 0
+};
+
+api.SetJammingEnvironment(jammingEnv);
 
 // 计算干扰效果
-double effectiveness = wrapper.CommModel_CalculateJammerEffectiveness(model);
-Console.WriteLine($"干扰有效性: {effectiveness}");
+double effectiveness = api.CalculateJammerEffectiveness();
+Console.WriteLine($"干扰有效性: {effectiveness:P2}");
 
-// 评估干扰等级
-int effectLevel = wrapper.CommModel_EvaluateJammerEffect(model);
-Console.WriteLine($"干扰效果等级: {effectLevel}");
+double jsRatio = api.CalculateJammerToSignalRatio();
+Console.WriteLine($"干信比: {jsRatio:F2} dB");
 ```
 
 **性能优化示例：**
 
 ```csharp
-// 设置优化目标
-wrapper.CommModel_SetOptimizationTarget(model, OptimizationTarget.MAX_RANGE);
+using var api = new CommunicationModelAPI();
 
-// 执行优化
-double optimalValue = wrapper.CommModel_OptimizeParameters(model);
-Console.WriteLine($"优化值: {optimalValue}");
+// 针对距离优化
+var rangeOptimizedEnv = api.OptimizeForRange(5000.0); // 5 km
+Console.WriteLine($"距离优化结果 - 频率: {rangeOptimizedEnv.Frequency / 1e9:F2} GHz");
 
-// 获取最优参数
-var optimalParams = wrapper.CommModel_GetOptimalParameters(model);
-Console.WriteLine($"最优参数: {optimalParams}");
+// 针对数据速率优化
+var dataRateOptimizedEnv = api.OptimizeForDataRate(100e6); // 100 Mbps
+Console.WriteLine($"数据速率优化结果 - 带宽: {dataRateOptimizedEnv.Bandwidth / 1e6:F2} MHz");
+
+// 针对功率效率优化
+var powerOptimizedEnv = api.OptimizeForPowerEfficiency();
+Console.WriteLine($"功率效率优化结果 - 功率: {powerOptimizedEnv.TransmitPower:F2} W");
 ```
 
 **报告生成示例：**
 
 ```csharp
+using var api = new CommunicationModelAPI();
+
 // 生成详细报告
-var report = wrapper.CommModel_GenerateDetailedReport(model);
-Console.WriteLine($"详细报告: {report}");
+var detailedReport = api.GenerateDetailedReport();
+Console.WriteLine($"详细报告:\n{detailedReport}");
 
 // 生成性能报告
-var perfReport = wrapper.CommModel_GeneratePerformanceReport(model);
-Console.WriteLine($"性能报告: {perfReport}");
+var performanceReport = api.GeneratePerformanceReport();
+Console.WriteLine($"性能报告:\n{performanceReport}");
+
+// 生成干扰分析报告
+var jammingReport = api.GenerateJammingAnalysisReport();
+Console.WriteLine($"干扰分析报告:\n{jammingReport}");
 ```
 
 **配置管理示例：**
 
 ```csharp
-// 保存当前配置
-int saveRc = wrapper.CommModel_SaveConfiguration(model, "config.json");
-if (saveRc == 0) {
-    Console.WriteLine("配置保存成功");
-}
+using var api = new CommunicationModelAPI();
 
-// 加载配置
-int loadRc = wrapper.CommModel_LoadConfiguration(model, "config.json");
-if (loadRc == 0) {
+try
+{
+    // 保存当前配置
+    api.SaveConfiguration("config.json");
+    Console.WriteLine("配置保存成功");
+
+    // 加载配置
+    api.LoadConfiguration("config.json");
     Console.WriteLine("配置加载成功");
+
+    // JSON 导入导出
+    string jsonConfig = api.ExportConfigurationToJSON();
+    Console.WriteLine($"配置 JSON: {jsonConfig}");
+    
+    api.ImportConfigurationFromJSON(jsonConfig);
+    Console.WriteLine("JSON 配置导入成功");
+}
+catch (CommunicationModelException ex)
+{
+    Console.WriteLine($"配置操作失败: {ex.Message}");
 }
 ```
 
@@ -419,7 +452,7 @@ if not model:
 
 # 获取版本
 version_buf = ctypes.create_string_buffer(128)
-lib.CommModel_GetVersion(model, version_buf, 128)
+lib.CommModel_GetVersion(version_buf, 128)
 print(f"版本: {version_buf.value.decode()}")
 
 # 销毁模型
@@ -441,7 +474,7 @@ public interface CommModelLib extends Library {
     
     Pointer CommModel_Create();
     void CommModel_Destroy(Pointer model);
-    String CommModel_GetVersion(Pointer model);
+    int CommModel_GetVersion(byte[] version, int bufferSize);
 }
 
 // 使用
@@ -451,7 +484,9 @@ if (model == null) {
     return;
 }
 
-String version = CommModelLib.INSTANCE.CommModel_GetVersion(model);
+byte[] versionBuf = new byte[128];
+CommModelLib.INSTANCE.CommModel_GetVersion(versionBuf, 128);
+String version = new String(versionBuf).trim();
 System.out.println("版本: " + version);
 
 CommModelLib.INSTANCE.CommModel_Destroy(model);
