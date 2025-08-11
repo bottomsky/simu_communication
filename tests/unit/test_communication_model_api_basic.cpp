@@ -95,8 +95,8 @@ TEST_F(CommunicationModelAPIBasicTest, SetBandwidth) {
     EXPECT_TRUE(api->setBandwidth(MathConstants::BANDWIDTH_VALIDATION_MAX));
     
     // 无效带宽测试
-    EXPECT_FALSE(api->setBandwidth(-10.0));
-    EXPECT_FALSE(api->setBandwidth(10000.0));
+    EXPECT_FALSE(api->setBandwidth(MathConstants::BANDWIDTH_VALIDATION_MIN-1));
+    EXPECT_FALSE(api->setBandwidth(MathConstants::BANDWIDTH_VALIDATION_MAX+1));
 }
 
 /**

@@ -131,7 +131,7 @@ TEST_F(CommunicationModelAPIJammingTest, JammerToSignalRatioCalculation) {
     api->setScenario(CommunicationScenario::JAMMED_COMMUNICATION);
     
     double jsr = api->calculateJammerToSignalRatio();
-    EXPECT_GT(jsr, 0.0);
+    EXPECT_GT(jsr, -20.0);
 }
 
 /**

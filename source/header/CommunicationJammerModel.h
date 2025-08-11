@@ -39,16 +39,16 @@ private:
     // 干扰机基本参数
     JammerType jammerType;        // 干扰类型
     JammerStrategy strategy;      // 干扰策略
-    double jammerPower;          // 干扰功率(dBm)
-    double jammerFrequency;      // 干扰中心频率(kHz)
+    double jammerTransmitPower_dBm;          // 干扰功率(dBm)
+    double jammerFrequency_kHz;      // 干扰中心频率(kHz)
     double jammerBandwidth;      // 干扰带宽(kHz)
     double jammerRange;          // 干扰作用距离(km)
     
     // 目标信号参数
     double targetFrequency;      // 目标信号频率(kHz)
     double targetBandwidth;      // 目标信号带宽(kHz)
-    double targetPower;          // 目标信号功率(dBm)
-    double targetDistance;       // 目标距离(km)
+    double targetSignalTransmitPower_dBm;          // 目标信号功率(dBm)
+    double jammerToTargetDistance; // 目标距离(km)
     
     // 环境参数
     double propagationLoss;      // 传播损耗(dB)
@@ -142,7 +142,16 @@ public:
     double calculateJammerEffectiveness() const;     // 计算干扰有效性(0-1)
     double calculateCommunicationDegradation() const; // 计算通信性能下降率(0-1)
     JammerEffectLevel evaluateJammerEffect() const;  // 评估干扰效果等级
-    
+    /// @brief 计算干扰干信比 (J/S)
+	/// @details 干信比(dB) = 干扰功率(dBm) - 信号功率(dBm)
+	///          其中：
+	///          - 干扰功率 = 干扰源发射功率 - 干扰路径损耗 - 干扰频率对应的大气损耗
+	///          - 信号功率 = 信号源发射功率 - 信号路径损耗 - 信号频率对应的大气损耗
+	/// @return 干信比(dB)，正值表示干扰强于信号，负值表示信号强于干扰
+	double CommunicationJammerModel::calculateJammerToSignalRatio(
+		double signalToTargetDistance_km,
+		double targetSignalFrequency_kHz) const;
+
     // 特定干扰类型的效果计算
     double calculateGaussianNoiseEffect() const;     // 高斯噪声干扰效果
     double calculateNarrowbandEffect() const;        // 窄带干扰效果
@@ -150,6 +159,7 @@ public:
     double calculatePulseJammerEffect() const;       // 脉冲干扰效果
     double calculateBarrageJammerEffect() const;     // 阻塞干扰效果
     double calculateSpotJammerEffect() const;        // 点频干扰效果
+	double CommunicationJammerModel::getAtmosphericLoss(double frequency_kHz) const;
     
     // 干扰覆盖范围计算
     double calculateJammingRange() const;            // 计算干扰有效覆盖范围(km)

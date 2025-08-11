@@ -14,7 +14,7 @@ CommunicationJammerModel::CommunicationJammerModel(
       jammerToSignalRatio(0.0), effectiveJammerPower(0.0),
       pulseWidth(MathConstants::DEFAULT_PULSE_WIDTH), pulseRepetitionRate(MathConstants::DEFAULT_PULSE_REPETITION_RATE), dutyCycle(MathConstants::DEFAULT_DUTY_CYCLE),
       sweepRate(MathConstants::DEFAULT_SWEEP_RATE), sweepRange(MathConstants::DEFAULT_SWEEP_RANGE),
-      targetFrequency(MathConstants::DEFAULT_FREQUENCY), targetBandwidth(MathConstants::DEFAULT_TARGET_BANDWIDTH), targetPower(MathConstants::DEFAULT_TARGET_POWER), targetDistance(MathConstants::DEFAULT_DISTANCE) {
+      targetFrequency(MathConstants::DEFAULT_FREQUENCY), targetBandwidth(MathConstants::DEFAULT_TARGET_BANDWIDTH), targetSignalTransmitPower_dBm(MathConstants::DEFAULT_TARGET_POWER), jammerToTargetDistance(MathConstants::DEFAULT_DISTANCE) {
     
     if (!setJammerPower(power)) {
         throw std::invalid_argument("干扰功率超出有效范围(-50至50dBm)");
@@ -64,7 +64,7 @@ bool CommunicationJammerModel::setJammerPower(double power_dBm) {
     if (!isPowerValid(power_dBm)) {
         return false;
     }
-    jammerPower = power_dBm;
+    jammerTransmitPower_dBm = power_dBm;
     return true;
 }
 
@@ -72,7 +72,7 @@ bool CommunicationJammerModel::setJammerFrequency(double freq_kHz) {
     if (!isFrequencyValid(freq_kHz)) {
         return false;
     }
-    jammerFrequency = freq_kHz;
+    jammerFrequency_kHz = freq_kHz;
     return true;
 }
 
@@ -113,7 +113,7 @@ bool CommunicationJammerModel::setTargetPower(double power_dBm) {
     if (!CommunicationJammerParameterConfig::isTargetPowerValid(power_dBm)) {
         return false;
     }
-    targetPower = power_dBm;
+    targetSignalTransmitPower_dBm = power_dBm;
     return true;
 }
 
@@ -121,7 +121,7 @@ bool CommunicationJammerModel::setTargetDistance(double distance_km) {
     if (!isRangeValid(distance_km)) {
         return false;
     }
-    targetDistance = distance_km;
+    jammerToTargetDistance = distance_km;
     return true;
 }
 
@@ -189,14 +189,14 @@ bool CommunicationJammerModel::setAtmosphericLoss(double loss_dB) {
 // 参数获取方法实现
 JammerType CommunicationJammerModel::getJammerType() const { return jammerType; }
 JammerStrategy CommunicationJammerModel::getJammerStrategy() const { return strategy; }
-double CommunicationJammerModel::getJammerPower() const { return jammerPower; }
-double CommunicationJammerModel::getJammerFrequency() const { return jammerFrequency; }
+double CommunicationJammerModel::getJammerPower() const { return jammerTransmitPower_dBm; }
+double CommunicationJammerModel::getJammerFrequency() const { return jammerFrequency_kHz; }
 double CommunicationJammerModel::getJammerBandwidth() const { return jammerBandwidth; }
 double CommunicationJammerModel::getJammerRange() const { return jammerRange; }
 double CommunicationJammerModel::getTargetFrequency() const { return targetFrequency; }
 double CommunicationJammerModel::getTargetBandwidth() const { return targetBandwidth; }
-double CommunicationJammerModel::getTargetPower() const { return targetPower; }
-double CommunicationJammerModel::getTargetDistance() const { return targetDistance; }
+double CommunicationJammerModel::getTargetPower() const { return targetSignalTransmitPower_dBm; }
+double CommunicationJammerModel::getTargetDistance() const { return jammerToTargetDistance; }
 double CommunicationJammerModel::getPulseWidth() const { return pulseWidth; }
 double CommunicationJammerModel::getPulseRepetitionRate() const { return pulseRepetitionRate; }
 double CommunicationJammerModel::getDutyCycle() const { return dutyCycle; }
@@ -218,8 +218,8 @@ double CommunicationJammerModel::calculatePropagationLoss(double distance_km, do
 /// @return 频率重叠度(0-1)
 double CommunicationJammerModel::calculateFrequencyOverlap() const {
     // 计算干扰频率与目标频率的重叠度
-    double jammer_low = jammerFrequency - jammerBandwidth / MathConstants::BANDWIDTH_HALF_DIVISOR;
-    double jammer_high = jammerFrequency + jammerBandwidth / MathConstants::BANDWIDTH_HALF_DIVISOR;
+    double jammer_low = jammerFrequency_kHz - jammerBandwidth / MathConstants::BANDWIDTH_HALF_DIVISOR;
+    double jammer_high = jammerFrequency_kHz + jammerBandwidth / MathConstants::BANDWIDTH_HALF_DIVISOR;
     double target_low = targetFrequency - targetBandwidth / MathConstants::BANDWIDTH_HALF_DIVISOR;
     double target_high = targetFrequency + targetBandwidth / MathConstants::BANDWIDTH_HALF_DIVISOR;
     
@@ -239,8 +239,8 @@ double CommunicationJammerModel::calculateFrequencyOverlap() const {
 /// @return 有效干扰功率(dBm)
 double CommunicationJammerModel::calculateJammerEffectivePower() const {
     // 计算到达目标的有效干扰功率
-    double path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
-    return jammerPower - path_loss - atmosphericLoss;
+    double path_loss = calculatePropagationLoss(jammerToTargetDistance, jammerFrequency_kHz);
+    return  jammerTransmitPower_dBm  - path_loss - atmosphericLoss;
 }
 
 /// @brief 计算干扰干信比
@@ -248,15 +248,63 @@ double CommunicationJammerModel::calculateJammerEffectivePower() const {
 /// @return 干信比(dB)
 double CommunicationJammerModel::calculateJammerToSignalRatio() const {
     // 计算到达目标的有效干扰功率
-    double jammer_path_loss = calculatePropagationLoss(targetDistance, jammerFrequency);
-    double effective_jammer_power = jammerPower - jammer_path_loss - atmosphericLoss;
+    double jammer_path_loss = calculatePropagationLoss(jammerToTargetDistance, jammerFrequency_kHz);
+    double effective_jammer_power = jammerTransmitPower_dBm - jammer_path_loss - atmosphericLoss;
     
     // 计算目标接收的信号功率（需要获取目标信号相关参数）
-    double signal_path_loss = calculatePropagationLoss(targetDistance, targetFrequency);
-    double received_signal_power = targetPower - signal_path_loss - atmosphericLoss;
+    double signal_path_loss = calculatePropagationLoss(jammerToTargetDistance, targetFrequency);
+    double received_signal_power = targetSignalTransmitPower_dBm - signal_path_loss - atmosphericLoss;
     
     // 计算干信比 (dB)：J/S = 有效干扰功率 - 接收信号功率
     return effective_jammer_power - received_signal_power;
+}
+
+/// @brief 计算干扰干信比 (J/S)
+/// @details 干信比(dB) = 干扰功率(dBm) - 信号功率(dBm)
+///          其中：
+///          - 干扰功率 = 干扰源发射功率 - 干扰路径损耗 - 干扰频率对应的大气损耗
+///          - 信号功率 = 信号源发射功率 - 信号路径损耗 - 信号频率对应的大气损耗
+/// @return 干信比(dB)，正值表示干扰强于信号，负值表示信号强于干扰
+double CommunicationJammerModel::calculateJammerToSignalRatio(
+	double signalToTargetDistance_km,
+	double targetSignalFrequency_kHz ) const {
+    // 1. 计算到达目标的有效干扰功率（单位：dBm）
+    // 干扰路径损耗：干扰源到目标的距离 + 干扰频率
+    double jammer_path_loss = calculatePropagationLoss(jammerToTargetDistance, jammerFrequency_kHz);
+    // 干扰频率对应的大气损耗（不同频率损耗不同）
+    double jammer_atmos_loss = getAtmosphericLoss(jammerFrequency_kHz);
+    // 有效干扰功率 = 发射功率 - 路径损耗 - 大气损耗（均为dBm单位，可直接相减）
+    double effective_jammer_power = jammerTransmitPower_dBm 
+                                  - jammer_path_loss 
+                                  - jammer_atmos_loss;
+    
+    // 2. 计算目标接收的有用信号功率（单位：dBm）
+    // 信号路径损耗：信号源到目标的距离（与干扰源到目标距离可能不同） + 信号频率
+    double signal_path_loss = calculatePropagationLoss(signalToTargetDistance_km , targetSignalFrequency_kHz );
+    // 信号频率对应的大气损耗
+    double signal_atmos_loss = getAtmosphericLoss(targetSignalFrequency_kHz);
+    // 接收信号功率 = 信号发射功率 - 路径损耗 - 大气损耗
+    double received_signal_power = targetSignalTransmitPower_dBm 
+                                 - signal_path_loss 
+                                 - signal_atmos_loss;
+    
+    // 3. 计算干信比（dB）：干扰功率与信号功率的比值（分贝制下为差值）
+    double jamming_to_signal_ratio = effective_jammer_power - received_signal_power;
+    
+    return jamming_to_signal_ratio;
+}
+
+// 辅助函数：根据频率计算大气损耗（示例实现）
+double CommunicationJammerModel::getAtmosphericLoss(double frequency_kHz) const {
+    // 实际应用中需根据频率、天气、传播环境等因素计算
+    // 此处为示例：高频信号大气损耗更大
+    if (frequency_kHz < 10000) { // 10kHz以下
+        return 2.0; // dB
+    } else if (frequency_kHz < 100000) { // 10kHz - 100kHz
+        return 5.0; // dB
+    } else { // 100kHz以上
+        return 8.0; // dB
+    }
 }
 
 
@@ -327,7 +375,7 @@ double CommunicationJammerModel::calculateGaussianNoiseEffect() const {
 
 double CommunicationJammerModel::calculateNarrowbandEffect() const {
     // 窄带干扰效果取决于频率精确度和功率
-    double freq_diff = abs(jammerFrequency - targetFrequency);
+    double freq_diff = abs(jammerFrequency_kHz - targetFrequency);
     double freq_factor = exp(-freq_diff / targetBandwidth);
     double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, calculateJammerToSignalRatio() / MathConstants::LINEAR_TO_DB_MULTIPLIER));
     return freq_factor * power_factor;
@@ -348,9 +396,9 @@ double CommunicationJammerModel::calculateSweepFrequencyEffect() const {
 double CommunicationJammerModel::calculatePulseJammerEffect() const {
     // 脉冲干扰效果取决于占空比和脉冲功率
     double frequency_overlap = calculateFrequencyOverlap();
-    double pulse_power = jammerPower + MathConstants::LINEAR_TO_DB_MULTIPLIER * log10(MathConstants::PULSE_POWER_BASE / dutyCycle); // 脉冲峰值功率
-    double effective_power = pulse_power - calculatePropagationLoss(targetDistance, jammerFrequency);
-    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, (effective_power - targetPower) / MathConstants::LINEAR_TO_DB_MULTIPLIER));
+    double pulse_power = jammerTransmitPower_dBm  + MathConstants::LINEAR_TO_DB_MULTIPLIER * log10(MathConstants::PULSE_POWER_BASE / dutyCycle); // 脉冲峰值功率
+    double effective_power = pulse_power - calculatePropagationLoss(jammerToTargetDistance, jammerFrequency_kHz);
+    double power_factor = std::min(MathConstants::MAX_POWER_FACTOR, std::pow(10.0, (effective_power - targetSignalTransmitPower_dBm) / MathConstants::LINEAR_TO_DB_MULTIPLIER));
     return frequency_overlap * dutyCycle * power_factor;
 }
 
@@ -399,7 +447,7 @@ double CommunicationJammerModel::calculateJammingArea() const {
 /// @return 干扰覆盖半径(km)，返回-1表示计算失败
 double CommunicationJammerModel::calculateJammingRange() const {
     // 1. 参数有效性检查
-    if (this->targetFrequency <= 0 || this->jammerFrequency <= 0) {
+    if (this->targetFrequency <= 0 || this->jammerFrequency_kHz <= 0) {
         return -1.0; // 无效参数返回错误
     }
 
@@ -407,14 +455,14 @@ double CommunicationJammerModel::calculateJammingRange() const {
     // 干信比(J/S)要求：有效干扰功率 - 目标接收功率 ≥ 最小干信比
     // 假设最小干信比为10dB（可以作为参数传入或配置）
     double minRequiredJsRatio = 10.0; // dB
-    double requiredJammerPowerAtTarget = this->targetPower + minRequiredJsRatio;
+    double requiredJammerPowerAtTarget = this->targetSignalTransmitPower_dBm + minRequiredJsRatio;
 
     // 3. 计算最大允许的路径损耗
     // 有效干扰功率 = 干扰机发射功率 - 路径损耗 - 大气损耗
     // 推导得：路径损耗 ≤ 干扰机发射功率 - 大气损耗 - 所需干扰功率
     // 假设大气损耗为2dB（可以作为参数传入或配置）
     double atmosphericLoss = 2.0; // dB
-    double maxAllowedPathLoss = this->jammerPower - atmosphericLoss - requiredJammerPowerAtTarget;
+    double maxAllowedPathLoss = this->jammerTransmitPower_dBm  - atmosphericLoss - requiredJammerPowerAtTarget;
     
     if (maxAllowedPathLoss < 0) {
         return 0.0; // 路径损耗为负，说明无有效覆盖范围
@@ -422,7 +470,7 @@ double CommunicationJammerModel::calculateJammingRange() const {
 
     // 4. 使用CommunicationDistanceModel的距离计算方法
     // 频率转换为MHz (jammerFrequency是kHz，需要除以1000)
-    double freqMHz = this->jammerFrequency / 1000.0;
+    double freqMHz = this->jammerFrequency_kHz / 1000.0;
     if (freqMHz <= 0) {
         return -1.0; // 无效频率
     }
@@ -439,16 +487,16 @@ double CommunicationJammerModel::calculateJammingRange() const {
 }
 
 bool CommunicationJammerModel::isTargetInJammerRange() const {
-    return this->targetDistance <= this->jammerRange;
+    return this->jammerToTargetDistance <= this->jammerRange;
 }
 
 /// @brief 计算所需干扰功率
 /// @details 所需干扰功率 = 目标信号功率 +  desired_js_ratio + 路径损耗 + 大气损耗
 /// @return 所需干扰功率(dBm)
 double CommunicationJammerModel::calculateRequiredJammerPower(double desired_js_ratio) const {
-    double path_loss = calculatePropagationLoss(this->targetDistance, this->jammerFrequency);
+    double path_loss = calculatePropagationLoss(this->jammerToTargetDistance, this->jammerFrequency_kHz);
     double atmosphericLoss = 2.0; // dB - 假设大气损耗为2dB
-    return this->targetPower + desired_js_ratio + path_loss + atmosphericLoss;
+    return this->targetSignalTransmitPower_dBm + desired_js_ratio + path_loss + atmosphericLoss;
 }
 
 /// @brief 计算最优干扰频率
@@ -474,7 +522,7 @@ double CommunicationJammerModel::calculateCombinedJammerEffect(
     }
     
     double total_jammer_power_dBm = MathConstants::LINEAR_TO_DB_MULTIPLIER * log10(total_jammer_power);
-    double combined_js_ratio = total_jammer_power_dBm - this->targetPower;
+    double combined_js_ratio = total_jammer_power_dBm - this->targetSignalTransmitPower_dBm;
     
     return std::min(MathConstants::MAX_COMBINED_EFFECT, MathConstants::COMBINED_EFFECT_BASE - MathConstants::COMBINED_EFFECT_BASE / (MathConstants::COMBINED_EFFECT_BASE + std::pow(10.0, combined_js_ratio / MathConstants::LINEAR_TO_DB_MULTIPLIER)));
 }
@@ -506,14 +554,14 @@ std::string CommunicationJammerModel::getParameterInfo() const {
     }
     oss << "\n";
     
-    oss << "干扰功率: " << jammerPower << " dBm\n";
-    oss << "干扰频率: " << jammerFrequency << " kHz\n";
+    oss << "干扰功率: " << jammerTransmitPower_dBm << " dBm\n";
+    oss << "干扰频率: " << jammerFrequency_kHz << " kHz\n";
     oss << "干扰带宽: " << jammerBandwidth << " kHz\n";
     oss << "作用距离: " << jammerRange << " km\n";
     oss << "目标频率: " << targetFrequency << " kHz\n";
     oss << "目标带宽: " << targetBandwidth << " kHz\n";
-    oss << "目标功率: " << targetPower << " dBm\n";
-    oss << "目标距离: " << targetDistance << " km\n";
+    oss << "目标功率: " << targetSignalTransmitPower_dBm << " dBm\n";
+    oss << "目标距离: " << jammerToTargetDistance << " km\n";
     
     if (jammerType == JammerType::PULSE) {
         oss << "脉冲宽度: " << pulseWidth << " ms\n";
