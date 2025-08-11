@@ -1,5 +1,6 @@
 using System;
 using CommunicationModel;
+using CommunicationModelExample.Tests;
 
 namespace CommunicationModelExample
 {
@@ -9,6 +10,16 @@ namespace CommunicationModelExample
         {
             Console.WriteLine("=== 通信模型C#调用示例 ===");
             Console.WriteLine();
+
+            // 检查命令行参数，如果包含 --interop-test，则运行互操作性测试
+            if (args.Length > 0 && args[0] == "--interop-test")
+            {
+                InteropTests.RunAllTests();
+                Console.WriteLine();
+                Console.WriteLine("按任意键退出...");
+                Console.ReadKey();
+                return;
+            }
 
             try
             {
