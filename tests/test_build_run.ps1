@@ -4,6 +4,8 @@
 param(
     [Alias("c")]
     [switch]$CleanBuild = $false,
+    [Alias("t")]
+    [switch]$TestOnly = $false,
     [switch]$Help
 )
 
@@ -12,16 +14,19 @@ if ($Help) {
     Write-Host "通信模型测试构建和运行脚本" -ForegroundColor Green
     Write-Host ""
     Write-Host "用法:" -ForegroundColor Yellow
-    Write-Host "  .\test_build_run.ps1 [-CleanBuild|-c] [-Help]" -ForegroundColor White
+    Write-Host "  .\test_build_run.ps1 [-CleanBuild|-c] [-TestOnly|-t] [-Help]" -ForegroundColor White
     Write-Host ""
     Write-Host "参数:" -ForegroundColor Yellow
     Write-Host "  -CleanBuild, -c    清空build目录缓存后重新构建 (默认: false)" -ForegroundColor White
+    Write-Host "  -TestOnly,  -t    仅运行测试，跳过CMake配置与构建步骤" -ForegroundColor White
     Write-Host "  -Help              显示此帮助信息" -ForegroundColor White
-    Write-Host ""
+    Write-Host "" 
     Write-Host "示例:" -ForegroundColor Yellow
     Write-Host "  .\test_build_run.ps1                # 增量构建" -ForegroundColor White
     Write-Host "  .\test_build_run.ps1 -CleanBuild    # 清空缓存后重新构建" -ForegroundColor White
     Write-Host "  .\test_build_run.ps1 -c             # 清空缓存后重新构建 (简写)" -ForegroundColor White
+    Write-Host "  .\test_build_run.ps1 -TestOnly      # 仅运行测试" -ForegroundColor White
+    Write-Host "  .\test_build_run.ps1 -t             # 仅运行测试 (简写)" -ForegroundColor White
     exit 0
 }
 
@@ -84,6 +89,19 @@ Write-Host "切换到build目录: $buildDir" -ForegroundColor Yellow
 Set-Location $buildDir
 
 try {
+    if ($TestOnly) {
+        Write-Host "`n[步骤] 仅运行测试 (跳过配置与构建)..." -ForegroundColor Cyan
+        ctest -C Release --output-on-failure
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "测试执行完成，但有测试失败，退出码: $LASTEXITCODE" -ForegroundColor Yellow
+        } else {
+            Write-Host "所有测试通过!" -ForegroundColor Green
+        }
+        Write-Host "`n=== 脚本执行完成 ===" -ForegroundColor Green
+        Write-Host "结束时间: $(Get-Date)" -ForegroundColor Yellow
+        return
+    }
+
     # 步骤1: CMake配置
     Write-Host "`n[步骤1] 配置CMake项目..." -ForegroundColor Cyan
     cmake . -G "Visual Studio 17 2022"
