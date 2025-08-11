@@ -20,11 +20,6 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="CommunicationModelWrapper.cs" />
-    <Compile Include="Program.cs" />
-  </ItemGroup>
-
   <!-- 复制动态库到输出目录 -->
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
     <None Include="..\..\build\bin\CommunicationModelCAPI.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\CommunicationModelCAPI.dll')" />

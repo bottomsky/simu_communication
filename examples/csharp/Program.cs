@@ -131,7 +131,7 @@ namespace CommunicationModelExample
             var jammingEnv = new CommJammingEnvironment
             {
                 IsJammed = 1,
-                JammerType = CommJammerType.Wideband,
+                JammerType = CommJammerType.GaussianNoise,
                 JammerPower = 10.0,          // 10 W
                 JammerFrequency = 2.4e9,     // 2.4 GHz
                 JammerBandwidth = 50e6,      // 50 MHz
