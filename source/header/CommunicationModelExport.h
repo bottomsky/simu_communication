@@ -12,7 +12,7 @@
     #else
         #define COMMUNICATION_MODEL_API __declspec(dllimport)
     #endif
-    #define COMMUNICATION_MODEL_CALL __stdcall
+    #define COMMUNICATION_MODEL_CALL __cdecl
 #else
     #ifdef COMMUNICATION_MODEL_EXPORTS
         #define COMMUNICATION_MODEL_API __attribute__((visibility("default")))
