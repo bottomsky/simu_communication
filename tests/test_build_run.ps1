@@ -88,12 +88,29 @@ if (-not (Test-Path $buildDir)) {
 Write-Host "切换到build目录: $buildDir" -ForegroundColor Yellow
 Set-Location $buildDir
 
+function Invoke-CTestColorized {
+    param(
+        [string]$Configuration = "Release"
+    )
+    & ctest -C $Configuration --output-on-failure 2>&1 | ForEach-Object {
+        $line = $_
+        if ($line -match "\[\s*FAILED\s*\]" -or $line -match "^The following tests FAILED" -or $line -match "FAILED TESTS" -or $line -match "Errors while running CTest" -or $line -match "^\s*0% tests passed") {
+            Write-Host $line -ForegroundColor Red
+        } elseif ($line -match "\[\s*PASSED\s*\]" -or $line -match "100% tests passed" -or $line -match "All tests passed") {
+            Write-Host $line -ForegroundColor Green
+        } else {
+            Write-Host $line
+        }
+    }
+    return $LASTEXITCODE
+}
+
 try {
     if ($TestOnly) {
         Write-Host "`n[步骤] 仅运行测试 (跳过配置与构建)..." -ForegroundColor Cyan
-        ctest -C Release --output-on-failure
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "测试执行完成，但有测试失败，退出码: $LASTEXITCODE" -ForegroundColor Yellow
+        $exitCode = Invoke-CTestColorized -Configuration "Release"
+        if ($exitCode -ne 0) {
+            Write-Host "测试执行完成，但有测试失败，退出码: $exitCode" -ForegroundColor Red
         } else {
             Write-Host "所有测试通过!" -ForegroundColor Green
         }
@@ -120,9 +137,9 @@ try {
 
     # 步骤3: 运行测试
     Write-Host "`n[步骤3] 运行测试..." -ForegroundColor Cyan
-    ctest -C Release --output-on-failure
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "测试执行完成，但有测试失败，退出码: $LASTEXITCODE" -ForegroundColor Yellow
+    $exitCode = Invoke-CTestColorized -Configuration "Release"
+    if ($exitCode -ne 0) {
+        Write-Host "测试执行完成，但有测试失败，退出码: $exitCode" -ForegroundColor Red
     } else {
         Write-Host "所有测试通过!" -ForegroundColor Green
     }
