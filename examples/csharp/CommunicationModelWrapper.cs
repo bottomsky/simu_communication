@@ -10,13 +10,15 @@ namespace CommunicationModel
     public enum CommResult
     {
         Success = 0,
-        ErrorInvalidHandle = -1,
+        ErrorInvalidParameter = -1,
         ErrorNullPointer = -2,
-        ErrorInvalidParameter = -3,
-        ErrorCalculationFailed = -4,
-        ErrorMemoryAllocation = -5,
-        ErrorFileOperation = -6,
-        ErrorUnknown = -99
+        ErrorMemoryAllocation = -3,
+        ErrorInvalidHandle = -4,
+        ErrorCalculationFailed = -5,
+        ErrorNotInitialized = -6,
+        ErrorUnsupportedOperation = -7,
+        ErrorFileOperation = -8,
+        ErrorUnknown = -999
     }
 
     /// <summary>
@@ -37,11 +39,11 @@ namespace CommunicationModel
     /// </summary>
     public enum CommQuality
     {
-        Excellent = 0,
-        Good = 1,
-        Fair = 2,
-        Poor = 3,
-        Failed = 4
+        Failed = 1,
+        Poor = 2,
+        Fair = 3,
+        Good = 4,
+        Excellent = 5
     }
 
     /// <summary>
@@ -65,10 +67,10 @@ namespace CommunicationModel
     {
         GaussianNoise = 0,
         Narrowband = 1,
-        Wideband = 2,
+        Sweep = 2,
         Pulse = 3,
-        Sweep = 4,
-        Barrage = 5
+        Barrage = 4,
+        Spot = 5
     }
 
     /// <summary>
