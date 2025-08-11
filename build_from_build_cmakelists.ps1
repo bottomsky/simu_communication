@@ -1,5 +1,11 @@
 param(
-    [switch]$Clean = $false
+    [Alias('c')]
+    [switch]$Clean = $false,
+    
+    [ValidateSet('Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel')]
+    [string]$Config = 'Debug',
+    
+    [int]$Jobs = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,15 +49,21 @@ else {
 }
 
 # Configure using the CMakeLists.txt located in build directory
-Write-Host "[CMake] 配置阶段：cmake -S $BuildDir -B $BuildDir" -ForegroundColor Cyan
-$configure = Start-Process -FilePath "cmake" -ArgumentList @("-S", $BuildDir, "-B", $BuildDir) -NoNewWindow -PassThru -Wait
+Write-Host "[CMake] 配置阶段：cmake -S $BuildDir -B $BuildDir (Config: $Config)" -ForegroundColor Cyan
+# 尝试在配置阶段同时传入 CMAKE_BUILD_TYPE，适配单配置生成器（如 Ninja/Makefile）；
+# 对于多配置生成器（如 VS）该变量可被忽略。
+$configureArgs = @("-S", $BuildDir, "-B", $BuildDir, "-DCMAKE_BUILD_TYPE=$Config")
+$configure = Start-Process -FilePath "cmake" -ArgumentList $configureArgs -NoNewWindow -PassThru -Wait
 if ($configure.ExitCode -ne 0) {
     throw "CMake 配置失败，退出码: $($configure.ExitCode)"
 }
 
-# Build. For multi-config generators (e.g., Visual Studio), default to Debug.
-Write-Host "[CMake] 构建阶段：cmake --build $BuildDir --config Debug" -ForegroundColor Cyan
-$build = Start-Process -FilePath "cmake" -ArgumentList @("--build", $BuildDir, "--config", "Debug") -NoNewWindow -PassThru -Wait
+# Build. Use provided $Config for multi-config generators; -j for parallel if specified
+$parallelText = if ($Jobs -gt 0) { " -j $Jobs" } else { "" }
+Write-Host "[CMake] 构建阶段：cmake --build $BuildDir --config $Config$parallelText" -ForegroundColor Cyan
+$buildArgs = @("--build", $BuildDir, "--config", $Config)
+if ($Jobs -gt 0) { $buildArgs += @("-j", "$Jobs") }
+$build = Start-Process -FilePath "cmake" -ArgumentList $buildArgs -NoNewWindow -PassThru -Wait
 if ($build.ExitCode -ne 0) {
     throw "CMake 构建失败，退出码: $($build.ExitCode)"
 }
