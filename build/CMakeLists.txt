@@ -20,11 +20,9 @@ else()
 endif()
 
 # Paths (CMakeLists is placed in build/; source lives one level up)
-set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/../source/src)
-set(INC_DIR ${CMAKE_CURRENT_LIST_DIR}/../source/header)
-set(EXAMPLES_DIR ${CMAKE_CURRENT_LIST_DIR}/../examples)
-
-include_directories(${INC_DIR})
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../source/src)
+set(INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../source/header)
+set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../examples)
 
 # Source grouping
 file(GLOB ALL_SRC "${SRC_DIR}/*.cpp")
@@ -33,7 +31,11 @@ list(REMOVE_ITEM ALL_SRC "${CAPI_SRC}")
 
 # Core libraries (Shared and Static)
 add_library(CommunicationModelShared SHARED ${ALL_SRC})
-target_include_directories(CommunicationModelShared PUBLIC ${INC_DIR})
+target_include_directories(CommunicationModelShared 
+    PUBLIC 
+        $<BUILD_INTERFACE:${INC_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/CommunicationModel>
+)
 # Windows下自动导出未显式标记的符号，方便其他C++程序直接链接DLL
 if(MSVC)
     set_target_properties(CommunicationModelShared PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -42,15 +44,25 @@ endif()
 add_library(CommunicationModel::Core ALIAS CommunicationModelShared)
 
 add_library(CommunicationModelStatic STATIC ${ALL_SRC})
-target_include_directories(CommunicationModelStatic PUBLIC ${INC_DIR})
+target_include_directories(CommunicationModelStatic 
+    PUBLIC 
+        $<BUILD_INTERFACE:${INC_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/CommunicationModel>
+)
 # For static builds, disable dll import/export decorations
 target_compile_definitions(CommunicationModelStatic PUBLIC COMMUNICATION_MODEL_STATIC)
 
 # C API shared library, exporting functions with COMMUNICATION_MODEL_EXPORTS
 add_library(CommunicationModelCAPI SHARED ${CAPI_SRC})
-target_include_directories(CommunicationModelCAPI PUBLIC ${INC_DIR})
+target_include_directories(CommunicationModelCAPI 
+    PUBLIC 
+        $<BUILD_INTERFACE:${INC_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/CommunicationModel>
+)
 target_link_libraries(CommunicationModelCAPI PRIVATE CommunicationModelShared)
 target_compile_definitions(CommunicationModelCAPI PRIVATE COMMUNICATION_MODEL_EXPORTS)
+# 提供一个更友好的别名，方便其他项目引用C API
+add_library(CommunicationModel::CAPI ALIAS CommunicationModelCAPI)
 
 # Example executables (use the C++ API from the core library)
 add_executable(basic_usage_example ${EXAMPLES_DIR}/basic_usage_example.cpp)
