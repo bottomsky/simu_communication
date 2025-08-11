@@ -140,6 +140,38 @@ function Build-CSharpProject {
     }
 }
 
+# 自动构建 C++ 项目
+function Invoke-AutoBuild {
+    Write-Step "正在调用构建脚本..."
+    
+    $buildScriptPath = Join-Path $ProjectRoot "build_from_build_cmakelists.ps1"
+    
+    if (-not (Test-Path $buildScriptPath)) {
+        Write-Error "构建脚本不存在: $buildScriptPath"
+        return $false
+    }
+    
+    try {
+        Write-ColorOutput "执行构建脚本: $buildScriptPath" "Cyan"
+        Write-ColorOutput "参数: 清除缓存" "Cyan"
+        
+        # 调用构建脚本并清除缓存
+        $buildResult = & $buildScriptPath -Clean
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "构建脚本执行成功"
+            return $true
+        } else {
+            Write-Error "构建脚本执行失败，退出代码: $LASTEXITCODE"
+            return $false
+        }
+    }
+    catch {
+        Write-Error "调用构建脚本时发生错误: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 # 复制动态库
 function Copy-DynamicLibraries {
     Write-Step "复制动态库到 C# 输出目录..."
@@ -213,30 +245,80 @@ function Copy-DynamicLibraries {
     }
     
     if (-not $primaryLibraryFound) {
-        Write-Error "未找到主要动态库: $primaryLibrary"
-        Write-Warning "请确保已经构建了 C++ 项目"
+        Write-Warning "未找到主要动态库: $primaryLibrary"
+        Write-Warning "将尝试自动构建 C++ 项目..."
         
-        # 列出 build 目录下的文件以帮助调试
+        # 列出当前搜索的路径以供参考
         Write-ColorOutput "搜索的路径:" "Gray"
         foreach ($path in $possibleBuildPaths) {
             if (Test-Path $path) {
                 Write-ColorOutput "  ✓ $path" "Gray"
-                Get-ChildItem $path -File -Filter "*.dll" | 
+                Get-ChildItem $path -File -Filter "*.dll" -ErrorAction SilentlyContinue | 
                     ForEach-Object { Write-ColorOutput "    - $($_.Name)" "Gray" }
             } else {
                 Write-ColorOutput "  ✗ $path (不存在)" "Gray"
             }
         }
         
-        # 递归搜索整个 build 目录
-        $buildDir = Join-Path $ProjectRoot "build"
-        if (Test-Path $buildDir) {
-            Write-ColorOutput "build 目录下的所有 DLL 文件:" "Gray"
-            Get-ChildItem $buildDir -Recurse -File -Filter "*.dll" | 
-                ForEach-Object { Write-ColorOutput "  $($_.FullName)" "Gray" }
+        # 尝试自动构建
+        $buildSuccess = Invoke-AutoBuild
+        
+        if ($buildSuccess) {
+            Write-Step "重新搜索动态库..."
+            
+            # 重新搜索主要动态库
+            foreach ($buildPath in $possibleBuildPaths) {
+                $sourcePath = Join-Path $buildPath $primaryLibrary
+                
+                if (Test-Path $sourcePath) {
+                    $destPath = Join-Path $CSharpOutputPath $primaryLibrary
+                    
+                    try {
+                        Copy-Item $sourcePath $destPath -Force
+                        Write-Success "已复制主要库: $primaryLibrary (从 $buildPath)"
+                        $copiedCount++
+                        $primaryLibraryFound = $true
+                        
+                        # 在同一目录下查找依赖库
+                        foreach ($depLib in $dependencyLibraries) {
+                            $depSourcePath = Join-Path $buildPath $depLib
+                            $depDestPath = Join-Path $CSharpOutputPath $depLib
+                            
+                            if (Test-Path $depSourcePath) {
+                                try {
+                                    Copy-Item $depSourcePath $depDestPath -Force
+                                    Write-Success "已复制依赖库: $depLib"
+                                    $copiedCount++
+                                }
+                                catch {
+                                    Write-Warning "复制依赖库失败: $depLib - $($_.Exception.Message)"
+                                }
+                            }
+                        }
+                        
+                        break  # 找到主要库后退出循环
+                    }
+                    catch {
+                        Write-Warning "复制主要库失败: $primaryLibrary - $($_.Exception.Message)"
+                    }
+                }
+            }
         }
         
-        exit 1
+        if (-not $primaryLibraryFound) {
+            Write-Error "自动构建后仍未找到主要动态库: $primaryLibrary"
+            Write-Error "请检查构建过程是否成功，或手动运行构建脚本"
+            
+            # 递归搜索整个 build 目录
+            $buildDir = Join-Path $ProjectRoot "build"
+            if (Test-Path $buildDir) {
+                Write-ColorOutput "build 目录下的所有 DLL 文件:" "Gray"
+                Get-ChildItem $buildDir -Recurse -File -Filter "*.dll" -ErrorAction SilentlyContinue | 
+                    ForEach-Object { Write-ColorOutput "  $($_.FullName)" "Gray" }
+            }
+            
+            exit 1
+        }
     }
     
     Write-Success "共复制了 $copiedCount 个动态库文件"
