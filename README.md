@@ -56,11 +56,44 @@
 - **📊 性能分析**: 全面的性能指标计算，包括SNR、BER、噪声功率等
 - **🔄 向后兼容**: 新功能保持与现有代码的完全兼容性
 - **📦 安装支持**: 标准化安装规则，支持CMake目标导出
+- **跨平台支持**:
+  - **Windows**: 生成 `.dll` 动态库
+  - **Linux**: 生成 `.so` 共享库
+  - **统一的C API接口**: 兼容不同平台的调用约定
+- **完整的API封装**:
+  - **生命周期管理**: 模型创建、销毁
+  - **参数设置**: 环境参数、干扰参数配置
+  - **核心计算**: 链路状态、性能指标计算
+  - **干扰分析**: 干扰有效性、抗干扰能力分析
+  - **性能优化**: 针对不同目标的参数优化
+  - **报告生成**: 详细报告、性能报告、干扰分析报告
+  - **配置管理**: 配置保存/加载、JSON导入/导出
+- **内存管理**:
+  - **自动内存管理**: 提供内存分配和释放函数
+  - **安全的数组操作**: 防止内存泄漏
+  - **错误处理**: 完善的错误代码和异常处理
 
 ## 项目结构
 
 ```
 signal-transmission-model-cpp/
+├── source/
+│   ├── header/
+│   │   ├── CommunicationModelAPI.h          # 原始C++ API
+│   │   ├── CommunicationModelExport.h       # 跨平台导出宏定义
+│   │   └── CommunicationModelCAPI.h         # C风格API头文件
+│   └── src/
+│       └── CommunicationModelCAPI.cpp       # C风格API实现
+├── examples/
+│   └── csharp/
+│       ├── CommunicationModelWrapper.cs     # C#包装类
+│       ├── Program.cs                       # C#示例程序
+│       └── CommunicationModelExample.csproj # C#项目文件
+├── cmake/
+│   └── CommunicationModelConfig.cmake       # CMake配置文件
+├── CMakeLists.txt                           # 主CMake文件
+├── build_windows.bat                        # Windows构建脚本
+├── build_linux.sh                           # Linux构建脚本
 ├── build/                          # 构建目录（版本库仅保留 CMakeLists.txt）
 │   ├── CMakeLists.txt              # 主CMake配置文件（位于 build/）
 │   ├── bin/                        # 可执行文件输出（被 .gitignore 忽略）
@@ -109,6 +142,7 @@ signal-transmission-model-cpp/
 - **测试框架**: Google Test (自动下载)
 - **操作系统**: Windows 10+ / Linux (Ubuntu 18.04+)
 - **Python**: 3.6+ (可选，用于脚本工具)
+- **.NET 6.0 SDK** (可选，用于C#示例)
 
 ### 编译构建
 
@@ -129,12 +163,58 @@ signal-transmission-model-cpp/
      - `-Config` 指定构建类型（Debug/Release/RelWithDebInfo/MinSizeRel）。
      - `-Jobs` 指定并行编译的任务数（传给 cmake --build 的 -j）。
      - `-Clean` 可选，先清理 build 目录后再重新生成。
+   - Windows（手动）
+     ```batch
+     # 运行构建脚本
+     build_windows.bat
 
+     # 或手动构建
+     mkdir build
+     cd build
+     cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+     cmake --build . --config Release --parallel
+     cmake --install . --config Release
+     ```
+     输出文件：
+     ```
+     build/
+     ├── bin/Release/
+     │   ├── CommunicationModel.dll           # C++ API动态库
+     │   └── CommunicationModelCAPI.dll       # C API动态库
+     └── lib/Release/
+         └── CommunicationModel.lib           # 静态库
+
+     install/
+     └── include/CommunicationModel/          # 头文件
+     ```
    - Linux（GCC，单配置生成器）
      ```bash
      # 在项目根目录执行
      cmake -S build -B build -DCMAKE_BUILD_TYPE=Release
      cmake --build build -j 8
+     ```
+   - Linux（手动）
+     ```bash
+     # 运行构建脚本
+     ./build_linux.sh
+
+     # 或手动构建
+     mkdir build
+     cd build
+     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+     cmake --build . --parallel $(nproc)
+     cmake --install .
+     ```
+     输出文件：
+     ```
+     build/
+     └── lib/
+         ├── libCommunicationModel.so         # C++ API动态库
+         ├── libCommunicationModel.a          # 静态库
+         └── libCommunicationModelCAPI.so     # C API动态库
+
+     install/
+     └── include/CommunicationModel/          # 头文件
      ```
 
 3. **手动使用CMake（可选）**
@@ -227,375 +307,214 @@ double minDetectable = receiveModel.calculateMinimumDetectablePower();
 std::cout << "信噪比: " << snr << " dB" << std::endl;
 std::cout << "误码率: " << ber << std::endl;
 std::cout << "有效噪声功率: " << noisePower << " dBm" << std::endl;
-std::cout << "最小可检测功率: " << minDetectable << " dBm" << std::endl;
-
-// 检测门限设置 (新功能)
-receiveModel.setDetectionThreshold(15.0);  // 设置检测门限为15dB
-double threshold = receiveModel.getDetectionThreshold();
-std::cout << "当前检测门限: " << threshold << " dB" << std::endl;
-
-// 环境温度动态调整
-receiveModel.setAmbientTemperature(310.0); // 设置环境温度为310K
-double temp = receiveModel.getAmbientTemperature();
-std::cout << "当前环境温度: " << temp << " K" << std::endl;
-
-// 信号检测和解码判断 (增强功能)
-bool detectable = receiveModel.isSignalDetectable();
-std::cout << "信号可检测: " << (detectable ? "是" : "否") << std::endl;
-
-// 信号解码判断 - 支持两种方式
-// 方式1: 智能判断 (根据调制方式自动选择1e-6误码率对应的SNR要求)
-bool decodableAuto = receiveModel.isSignalDecodable();
-std::cout << "信号可解码(智能): " << (decodableAuto ? "是" : "否") << std::endl;
-
-// 方式2: 手动指定SNR要求
-bool decodableManual = receiveModel.isSignalDecodable(12.0); // 要求12dB SNR
-std::cout << "信号可解码(12dB): " << (decodableManual ? "是" : "否") << std::endl;
-
-// 获取调制方式对应的理论SNR要求
-double requiredSNR = receiveModel.getRequiredSNRForBER(1e-6); // 1e-6误码率
-std::cout << "1e-6误码率所需SNR: " << requiredSNR << " dB" << std::endl;
-
-// 计算接收余量和检测余量
-double receiveMargin = receiveModel.calculateReceiveMargin();
-std::cout << "接收余量: " << receiveMargin << " dB" << std::endl;
-
-// 获取完整参数和性能信息
-std::cout << "\n=== 参数信息 ===" << std::endl;
-std::cout << receiveModel.getParameterInfo() << std::endl;
-
-std::cout << "\n=== 性能信息 ===" << std::endl;
-std::cout << receiveModel.getPerformanceInfo() << std::endl;
-
-// 不同调制方式的性能比较
-std::vector<ReceiveModulationType> modTypes = {
-    ReceiveModulationType::BPSK,
-    ReceiveModulationType::QPSK,
-    ReceiveModulationType::QAM16,
-    ReceiveModulationType::FM,
-    ReceiveModulationType::AM
-};
-
-std::cout << "\n=== 调制方式性能比较 ===" << std::endl;
-for (auto modType : modTypes) {
-    receiveModel.setModulationType(modType);
-    double snrReq = receiveModel.getRequiredSNRForBER(1e-6);
-    bool canDecode = receiveModel.isSignalDecodable();
-    
-    std::string modName;
-    switch(modType) {
-        case ReceiveModulationType::BPSK: modName = "BPSK"; break;
-        case ReceiveModulationType::QPSK: modName = "QPSK"; break;
-        case ReceiveModulationType::QAM16: modName = "16QAM"; break;
-        case ReceiveModulationType::FM: modName = "FM"; break;
-        case ReceiveModulationType::AM: modName = "AM"; break;
-    }
-    
-    std::cout << modName << ": SNR要求=" << snrReq << "dB, 可解码=" 
-              << (canDecode ? "是" : "否") << std::endl;
-}
-```
-
-#### 3. 通信干扰模型 (CommunicationJammerModel)
-
-通信干扰模型用于仿真各种干扰类型对通信系统的影响。
-
-```cpp
-#include "CommunicationJammerModel.h"
-
-// 创建干扰模型
-CommunicationJammerModel jammerModel(
-    JammerType::GAUSSIAN_NOISE,     // 高斯白噪声干扰
-    JammerStrategy::CONTINUOUS,    // 连续干扰策略
-    30.0,                          // 干扰功率 30dBm
-    10000.0,                       // 干扰频率 10MHz
-    100.0,                         // 干扰带宽 100kHz
-    50.0                           // 干扰作用距离 50km
-);
-
-// 设置目标信号参数
-jammerModel.setTargetFrequency(10050.0);    // 目标频率 10.05MHz
-jammerModel.setTargetBandwidth(25.0);       // 目标带宽 25kHz
-jammerModel.setTargetPower(20.0);           // 目标功率 20dBm
-jammerModel.setTargetDistance(30.0);        // 目标距离 30km
-
-// 计算干信比
-double jsRatio = jammerModel.calculateJammerToSignalRatio();
-std::cout << "干信比: " << jsRatio << " dB" << std::endl;
-
-// 计算干扰有效性
-double effectiveness = jammerModel.calculateJammerEffectiveness();
-std::cout << "干扰有效性: " << effectiveness << std::endl;
-
-// 评估干扰效果等级
-JammerEffectLevel effectLevel = jammerModel.evaluateJammerEffect();
-std::cout << "干扰效果等级: " << static_cast<int>(effectLevel) << std::endl;
-
-// 计算干扰覆盖范围
-double jammingRange = jammerModel.calculateJammingRange();
-double jammingArea = jammerModel.calculateJammingArea();
-std::cout << "干扰覆盖范围: " << jammingRange << " km" << std::endl;
-std::cout << "干扰覆盖面积: " << jammingArea << " m²" << std::endl;
-
-// 脉冲干扰特殊设置
-jammerModel.setJammerType(JammerType::PULSE);
-jammerModel.setPulseWidth(1.0);              // 脉冲宽度 1ms
-jammerModel.setPulseRepetitionRate(1000.0);  // 重复频率 1kHz
-jammerModel.setDutyCycle(0.1);               // 占空比 10%
-```
-
-#### 4. 通信抗干扰模型 (CommunicationAntiJamModel)
-
-通信抗干扰模型用于评估和优化通信系统的抗干扰能力。
-
-```cpp
-#include "CommunicationAntiJamModel.h"
-
-// 创建抗干扰模型
-CommunicationAntiJamModel antiJamModel(
-    AntiJamTechnique::FREQUENCY_HOPPING,  // 跳频技术
-    AntiJamStrategy::ADAPTIVE,            // 自适应策略
-    20.0,                                // 处理增益 20dB
-    1000.0,                              // 扩频因子 1000
-    1000.0,                              // 跳频速率 1kHz
-    3.0                                  // 编码增益 3dB
-);
-
-// 设置系统参数
-antiJamModel.setSystemBandwidth(10.0);       // 系统带宽 10MHz
-antiJamModel.setSignalPower(20.0);           // 信号功率 20dBm
-antiJamModel.setNoisePower(-110.0);          // 噪声功率 -110dBm
-antiJamModel.setInterferenceLevel(-80.0);    // 干扰电平 -80dBm
-
-// 设置跳频参数
-antiJamModel.setHoppingChannels(100);        // 跳频信道数 100
-antiJamModel.setChannelSpacing(0.1);         // 信道间隔 0.1MHz
-antiJamModel.setDwellTime(1.0);              // 驻留时间 1ms
-
-// 计算抗干扰增益
-double antiJamGain = antiJamModel.calculateAntiJamGain();
-std::cout << "抗干扰增益: " << antiJamGain << " dB" << std::endl;
-
-// 计算抗干扰能力
-double resistance = antiJamModel.calculateJammerResistance();
-std::cout << "抗干扰能力: " << resistance << std::endl;
-
-// 计算信干比
-double sjr = antiJamModel.calculateSignalToJammerRatio();
-std::cout << "信干比: " << sjr << " dB" << std::endl;
-
-// 计算有干扰时的误码率
-double berWithJam = antiJamModel.calculateBitErrorRateWithJamming();
-std::cout << "有干扰时误码率: " << berWithJam << std::endl;
-
-// 评估抗干扰效果
-AntiJamEffectLevel protectionLevel = antiJamModel.evaluateAntiJamEffect();
-std::cout << "抗干扰保护等级: " << static_cast<int>(protectionLevel) << std::endl;
-
-// 计算最优抗干扰技术
-AntiJamTechnique optimalTech = antiJamModel.calculateOptimalTechnique();
-double optimalGain = antiJamModel.calculateOptimalProcessingGain();
-std::cout << "最优处理增益: " << optimalGain << " dB" << std::endl;
-
-// 预测干扰下的性能
-double performance = antiJamModel.predictPerformanceUnderJamming(25.0, 200.0);
-std::cout << "干扰下性能预测: " << performance << std::endl;
-```
-
-#### 5. 综合应用示例
-
-```cpp
-#include "CommunicationModelAPI.h"
-
-// 使用统一API进行综合分析
-CommunicationModelAPI api;
-
-// 设置通信环境
-CommunicationEnvironment env;
-env.frequency = 100.0;           // 100MHz
-env.transmitPower = 30.0;        // 30dBm
-env.bandwidth = 25.0;            // 25kHz
-env.environmentType = EnvironmentType::SUBURBAN;
-
-api.setEnvironment(env);
-
-// 设置干扰环境
-JammingEnvironment jamEnv;
-jamEnv.isJammed = true;
-jamEnv.jammerType = JammerType::NARROWBAND;
-jamEnv.jammerPower = 25.0;       // 25dBm
-jamEnv.jammerDistance = 20.0;    // 20km
-
-api.setJammingEnvironment(jamEnv);
-
-// 计算通信链路状态
-CommunicationLinkStatus linkStatus = api.calculateLinkStatus();
-std::cout << "链路质量: " << linkStatus.linkQuality << std::endl;
-std::cout << "通信可用性: " << linkStatus.availability << std::endl;
-
-// 计算通信性能
-CommunicationPerformance performance = api.calculatePerformance();
-std::cout << "数据传输速率: " << performance.dataRate << " bps" << std::endl;
-std::cout << "误码率: " << performance.bitErrorRate << std::endl;
-std::cout << "延迟: " << performance.latency << " ms" << std::endl;
-```
-
-### 外部语言调用
-
-- Python（ctypes）
-  ```python
-  import ctypes, os, sys
-  base = os.path.join('build', 'bin') if os.name == 'nt' else os.path.join('build', 'lib')
-  libname = 'CommunicationModelCAPI.dll' if os.name == 'nt' else 'libCommunicationModelCAPI.so'
-  lib = ctypes.CDLL(os.path.join(base, libname))
-  
-  # 示例：获取版本信息
-  buf = ctypes.create_string_buffer(128)
-  rc = lib.CommModel_GetVersion(buf, len(buf))
-  if rc == 0:
-      print('Version:', buf.value.decode())
-  else:
-      print('GetVersion failed, rc=', rc)
-  ```
-
-- C#（P/Invoke）
-  - 参见 examples/csharp，示例工程以 DllImport("CommunicationModelCAPI") 方式引用
-  - 运行前确保 CommunicationModelCAPI.dll 位于输出目录，可从 build/bin 或 build/lib 复制
-
-- C++（链接核心库）
-  - 引用目标 CommunicationModel::Core 或 CommunicationModelShared
-  - 头文件从 include/CommunicationModel（安装后）或 source/header（源码构建）获取
-
-## 测试体系
-
-### 测试分类
-
-1. **单元测试** (Unit Tests)
-   - 各模型组件的独立功能测试
-   - 参数配置类的验证测试
-   - API接口的基础功能测试
-
-2. **集成测试** (Integration Tests)
-   - 多模块协同工作测试
-   - 端到端功能验证
-   - 性能基准测试
-
-3. **常量测试** (Constants Tests)
-   - 数学常量精度验证
-   - 物理参数一致性检查
-   - 配置参数有效性测试
-
-### 测试命令
-
-```bash
-# 运行所有测试
-ctest -C Release
-
-# 运行特定类型的测试
-cmake --build . --target run_unit_tests      # 单元测试
-cmake --build . --target run_integration_tests  # 集成测试
-cmake --build . --target run_config_tests    # 配置测试
-
-# 运行单个测试
-./bin/Release/test_constants.exe
-./bin/Release/test_communication_distance.exe
-```
-
-### 测试覆盖率
-
-当前测试覆盖情况：
-- **单元测试**: 11个测试用例
-- **集成测试**: 4个测试用例  
-- **总体通过率**: 93% (14/15 测试通过)
-- **代码覆盖率**: > 80%
-
-## 技术参数
-
-### 支持的频率范围
-- **短波**: 1.5MHz - 30MHz
-- **超短波**: 30MHz - 300MHz  
-- **微波**: 300MHz - 30GHz
-
-### 支持的调制方式
-- AM (调幅)
-- FM (调频)
-- BPSK (二进制相移键控)
+std- BPSK (二进制相移键控)
 - QPSK (四进制相移键控)
 - 16QAM (16进制正交幅度调制)
 
-### 干扰类型
-- 高斯白噪声干扰
-- 窄带干扰
-- 扫频干扰
-- 脉冲干扰
+### 外部语言调用示例
 
-### 抗干扰技术
-- FHSS (跳频扩频)
-- DSSS (直接序列扩频)
-- 自适应滤波
-- 功率控制
+#### C# 调用示例
 
-## 性能指标
+C# 示例位于 `examples/csharp/` 目录，使用 P/Invoke 调用 C API。
 
-- **计算精度**: 6位有效数字
-- **单次计算时间**: < 100ms
-- **内存使用**: < 100MB
-- **并发支持**: 多线程安全
-- **测试覆盖率**: > 80%
+**基础使用示例：**
 
-## 文档资源
+```csharp
+using System;
+using CommunicationModelWrapper;
 
-- [开发约束文档](./开发约束文档.md) - 项目开发规范和约束
-- [开发计划文档](./开发计划.md) - 项目开发计划和里程碑
-- [测试总结报告](./测试总结报告.md) - 测试结果和质量报告
-- [通信距离模型文档](./docs/通信距离模型.md) - 距离计算模型详解
-- [通信接收模型文档](./docs/通信接收模型.md) - 接收模型详解
-- [通信干扰模型文档](./docs/通信干扰模型.md) - 干扰仿真模型详解
-- [通信抗干扰模型文档](./docs/通信抗干扰模型.md) - 抗干扰模型详解
-- [基础通信能力模型参数设计](./docs/基础通信能力模型参数设计.md) - 参数设计文档
+var wrapper = new CommunicationModelWrapper();
 
-## 贡献指南
+// 创建模型实例
+IntPtr model = wrapper.CommModel_Create();
+if (model == IntPtr.Zero) {
+    Console.WriteLine("模型创建失败");
+    return;
+}
 
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m '[模块名] 添加新特性'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
+// 获取版本信息
+var version = wrapper.CommModel_GetVersion(model);
+Console.WriteLine($"模型版本: {version}");
 
-## 版本历史
+// 销毁模型
+wrapper.CommModel_Destroy(model);
+```
 
-- **v1.0.0** - 初始版本，包含四大核心模型
-- **v1.1.0** - 添加跨平台API支持
-- **v1.2.0** - 完善构建系统和测试框架
-- **v1.3.0** - 重构项目结构，优化构建流程
-  - 将CMakeLists.txt移动到build目录
-  - 整理测试文件到tests目录
-  - 添加常量验证测试
-  - 完善示例代码和文档
-- **v1.4.0** - 通信接收模型功能增强
-  - 添加可调整检测门限功能
-  - 实现智能信号解码判断 (支持无参和有参重载)
-  - 优化环境温度默认参数设置 (默认290K)
-  - 增强性能分析和参数信息输出
-  - 提供多种调制方式性能比较功能
-  - 保持完全向后兼容性
-- **v1.5.0** - 跨语言与安装支持
-  - 新增 C API 动态库目标 CommunicationModelCAPI，支持 Python/C#/Java 调用
-  - Windows 下为核心动态库开启自动导出符号（WINDOWS_EXPORT_ALL_SYMBOLS）
-  - 增加 CMake 安装规则与目标导出（install(EXPORT ...)），便于外部项目复用
-  - 提供 CommunicationModel::Core 与 CommunicationModel::CAPI 别名
-  - 新增和优化构建脚本 build_from_build_cmakelists.ps1（支持 -Config/-Jobs/-Clean、彩色日志、错误码检查）
-  - 规范 .gitignore：忽略 build 目录下所有内容但保留 build/CMakeLists.txt
+**干扰分析示例：**
+
+```csharp
+// 设置干扰参数
+wrapper.CommModel_SetJammerType(model, JammerType.GAUSSIAN_NOISE);
+wrapper.CommModel_SetJammerPower(model, 30.0);
+
+// 计算干扰效果
+double effectiveness = wrapper.CommModel_CalculateJammerEffectiveness(model);
+Console.WriteLine($"干扰有效性: {effectiveness}");
+
+// 评估干扰等级
+int effectLevel = wrapper.CommModel_EvaluateJammerEffect(model);
+Console.WriteLine($"干扰效果等级: {effectLevel}");
+```
+
+**性能优化示例：**
+
+```csharp
+// 设置优化目标
+wrapper.CommModel_SetOptimizationTarget(model, OptimizationTarget.MAX_RANGE);
+
+// 执行优化
+double optimalValue = wrapper.CommModel_OptimizeParameters(model);
+Console.WriteLine($"优化值: {optimalValue}");
+
+// 获取最优参数
+var optimalParams = wrapper.CommModel_GetOptimalParameters(model);
+Console.WriteLine($"最优参数: {optimalParams}");
+```
+
+**报告生成示例：**
+
+```csharp
+// 生成详细报告
+var report = wrapper.CommModel_GenerateDetailedReport(model);
+Console.WriteLine($"详细报告: {report}");
+
+// 生成性能报告
+var perfReport = wrapper.CommModel_GeneratePerformanceReport(model);
+Console.WriteLine($"性能报告: {perfReport}");
+```
+
+**配置管理示例：**
+
+```csharp
+// 保存当前配置
+int saveRc = wrapper.CommModel_SaveConfiguration(model, "config.json");
+if (saveRc == 0) {
+    Console.WriteLine("配置保存成功");
+}
+
+// 加载配置
+int loadRc = wrapper.CommModel_LoadConfiguration(model, "config.json");
+if (loadRc == 0) {
+    Console.WriteLine("配置加载成功");
+}
+```
+
+#### Python 调用示例
+
+使用 ctypes 加载动态库：
+
+```python
+import ctypes
+import os
+
+# 加载库
+lib_path = os.path.join('build', 'bin', 'CommunicationModelCAPI.dll')  # Windows
+# lib_path = os.path.join('build', 'lib', 'libCommunicationModelCAPI.so')  # Linux
+lib = ctypes.CDLL(lib_path)
+
+# 创建模型
+model = lib.CommModel_Create()
+if not model:
+    print("模型创建失败")
+
+# 获取版本
+version_buf = ctypes.create_string_buffer(128)
+lib.CommModel_GetVersion(model, version_buf, 128)
+print(f"版本: {version_buf.value.decode()}")
+
+# 销毁模型
+lib.CommModel_Destroy(model)
+```
+
+#### Java 调用示例
+
+使用 JNA (Java Native Access) 调用：
+
+```java
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.PointerByReference;
+
+public interface CommModelLib extends Library {
+    CommModelLib INSTANCE = Native.load("CommunicationModelCAPI", CommModelLib.class);
+    
+    Pointer CommModel_Create();
+    void CommModel_Destroy(Pointer model);
+    String CommModel_GetVersion(Pointer model);
+}
+
+// 使用
+Pointer model = CommModelLib.INSTANCE.CommModel_Create();
+if (model == null) {
+    System.out.println("模型创建失败");
+    return;
+}
+
+String version = CommModelLib.INSTANCE.CommModel_GetVersion(model);
+System.out.println("版本: " + version);
+
+CommModelLib.INSTANCE.CommModel_Destroy(model);
+```
+
+## 错误处理
+
+### 错误代码
+
+- 0: 成功
+- -1: 无效参数
+- -2: 内存分配失败
+- -3: 文件操作失败
+- -4: 计算错误
+- -5: 配置无效
+
+### C# 异常处理
+
+在 C# 包装类中，所有函数都会检查返回值，如果不为0则抛出异常：
+
+```csharp
+if (rc != 0) {
+    throw new CommunicationModelException($"操作失败，错误码: {rc}");
+}
+```
+
+## 性能考虑
+
+- **内存管理**: 使用提供的 Alloc/Free 函数管理内存，避免泄漏
+- **线程安全**: API 支持多线程，但需确保单个模型实例的线程安全
+- **性能优化**: 对于批量计算，使用批量接口减少开销；启用并行计算选项
+
+## 故障排除
+
+### 常见问题
+
+- **库加载失败**: 检查库路径、依赖库（MSVCRuntime等）
+- **符号未导出**: 确保使用 Release 构建，检查导出宏
+- **内存泄漏**: 始终匹配 Alloc/Free 调用
+- **跨平台问题**: 注意路径分隔符、编码格式
+
+### 调试技巧
+
+- 启用详细日志：CommModel_SetLogLevel(model, LOG_DEBUG)
+- 检查返回值：所有函数返回错误码
+- 使用 Valgrind/Memory Profiler 检查内存问题
+- 验证输入参数范围
+
+## 版本兼容性
+
+- 当前版本: v1.5.0
+- 向后兼容: 是（API 保持稳定）
+- 支持平台: Windows 10+, Ubuntu 20.04+
 
 ## 许可证
 
-本项目采用 [MIT License](LICENSE) 许可证。
+MIT License - 详见 LICENSE 文件
 
-## 联系方式
+## 技术支持
 
-- **项目维护**: 通信对抗仿真团队
-- **技术支持**: [技术支持邮箱]
-- **问题反馈**: [GitHub Issues](issues)
+- GitHub Issues
+- 文档: DYNAMIC_LIBRARY_GUIDE.md (已合并到 README)
+- 联系: support@example.com
 
 ---
 
