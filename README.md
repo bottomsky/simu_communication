@@ -432,6 +432,22 @@ catch (CommunicationModelException ex)
 }
 ```
 
+**互操作性测试 (Interop Testing):**
+
+项目包含一套全面的 C#/C++ 互操作性测试，用于验证内存布局一致性、数据类型映射和 P/Invoke 调用的正确性。
+
+- **测试文件**: `examples/csharp/Tests/InteropTests.cs`
+- **运行方式**:
+  1. 编译 C# 示例项目。
+  2. 在项目根目录的 `build/bin/` 目录下找到 `CommunicationModelExample.exe`。
+  3. 从命令行运行，并附加 `--interop-test` 参数：
+     ```shell
+     cd build/bin/
+     ./CommunicationModelExample.exe --interop-test
+     ```
+- **预期输出**: 测试将执行并报告所有测试用例（如内存布局、数据交换、数组操作等）是否通过。
+
+
 #### Python 调用示例
 
 使用 ctypes 加载动态库：
