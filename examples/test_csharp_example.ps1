@@ -4,7 +4,8 @@
 param(
     [string]$Configuration = "Debug",
     [switch]$Clean = $false,
-    [switch]$Verbose = $false
+    [switch]$Verbose = $false,
+    [switch]$Pack = $false
 )
 
 # 设置错误处理
@@ -14,6 +15,7 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $CSharpSolutionPath = Join-Path $PSScriptRoot "csharp\CommunicationModelExample.sln"
 $CSharpProjectPath = Join-Path $PSScriptRoot "csharp\CommunicationModelExample.csproj"
+$CSharpWrapperProjectPath = Join-Path $PSScriptRoot "csharp\CommunicationModelWrapper\CommunicationModelWrapper.csproj"
 $CSharpOutputPath = Join-Path $PSScriptRoot "csharp\bin\$Configuration\net6.0"
 
 # 颜色输出函数
@@ -95,7 +97,8 @@ function Clear-Output {
         
         $csharpBinPath = Join-Path $PSScriptRoot "csharp\bin"
         $csharpObjPath = Join-Path $PSScriptRoot "csharp\obj"
-        
+        $nupkgsPath = Join-Path $PSScriptRoot "csharp\nupkgs"
+
         if (Test-Path $csharpBinPath) {
             Remove-Item $csharpBinPath -Recurse -Force
             Write-Success "已清理: $csharpBinPath"
@@ -104,6 +107,11 @@ function Clear-Output {
         if (Test-Path $csharpObjPath) {
             Remove-Item $csharpObjPath -Recurse -Force
             Write-Success "已清理: $csharpObjPath"
+        }
+
+        if (Test-Path $nupkgsPath) {
+            Remove-Item $nupkgsPath -Recurse -Force
+            Write-Success "已清理: $nupkgsPath"
         }
     }
 }
@@ -139,6 +147,39 @@ function Build-CSharpProject {
         exit 1
     }
 }
+
+# 打包 C# 包装器项目
+function Pack-CSharpWrapper {
+    Write-Step "打包 C# 包装器项目为 NuGet 包..."
+
+    try {
+        $packArgs = @(
+            "pack",
+            $CSharpWrapperProjectPath,
+            "--configuration", $Configuration,
+            "--no-build" # 已经在解决方案级别构建过
+        )
+
+        if ($Verbose) {
+            Write-ColorOutput "执行命令: dotnet $($packArgs -join ' ')" "Gray"
+        }
+
+        & dotnet @packArgs
+
+        if ($LASTEXITCODE -eq 0) {
+            $nupkgPath = Join-Path $PSScriptRoot "csharp\nupkgs"
+            Write-Success "NuGet 包创建成功，已输出至: $nupkgPath"
+        } else {
+            Write-Error "NuGet 包创建失败，退出码: $LASTEXITCODE"
+            exit $LASTEXITCODE
+        }
+    }
+    catch {
+        Write-Error "打包过程中发生异常: $($_.Exception.Message)"
+        exit 1
+    }
+}
+
 
 # 自动构建 C++ 项目
 function Invoke-AutoBuild {
@@ -198,7 +239,8 @@ function Copy-DynamicLibraries {
     # 可能的依赖库
     $dependencyLibraries = @(
         "CommunicationModel.dll",
-        "CommunicationModelShared.dll"
+        "CommunicationModelShared.dll",
+        "CommunicationModelCAPI.pdb"
     )
     
     $copiedCount = 0
@@ -364,17 +406,19 @@ function Show-Help {
 C# 示例测试脚本
 
 用法:
-    .\test_csharp_example.ps1 [-Configuration <Debug|Release>] [-Clean] [-Verbose]
+    .\test_csharp_example.ps1 [-Configuration <Debug|Release>] [-Clean] [-Verbose] [-Pack]
 
 参数:
     -Configuration  构建配置 (Debug 或 Release，默认: Debug)
     -Clean          清理输出目录后再构建
     -Verbose        显示详细输出
+    -Pack           构建并打包 CommunicationModelWrapper 项目为 NuGet 包
 
 示例:
     .\test_csharp_example.ps1                          # 使用默认设置
     .\test_csharp_example.ps1 -Configuration Release   # 使用 Release 配置
     .\test_csharp_example.ps1 -Clean -Verbose          # 清理并显示详细输出
+    .\test_csharp_example.ps1 -Pack                    # 构建并打包 Wrapper
 
 注意:
     运行此脚本前，请确保已经构建了 C++ 项目，生成了必要的动态库文件。
@@ -392,12 +436,24 @@ function Main {
         Test-Prerequisites
         Test-Files
         Clear-Output
+        
+        # 确保 C++ 库存在，如果不存在则尝试构建
+        $cppLibPath = Join-Path $ProjectRoot "build\bin\$Configuration\CommunicationModelCAPI.dll"
+        if (-not (Test-Path $cppLibPath)) {
+            Invoke-AutoBuild
+        }
+
         Build-CSharpProject
-        Copy-DynamicLibraries
-        Run-CSharpProject
+        
+        if ($Pack) {
+            Pack-CSharpWrapper
+        } else {
+            Copy-DynamicLibraries
+            Run-CSharpProject
+        }
         
         Write-ColorOutput ""
-        Write-Success "所有步骤完成！C# 示例测试成功。"
+        Write-Success "所有步骤完成！"
     }
     catch {
         Write-Error "脚本执行失败: $($_.Exception.Message)"

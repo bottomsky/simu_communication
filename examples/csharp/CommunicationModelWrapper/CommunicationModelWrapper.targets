@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- After build, copy native libs from the package to the consumer project's output -->
+  <Target Name="CommunicationModelWrapper_CopyNative" AfterTargets="Build" Condition="'$([MSBuild]::IsOsPlatform(Windows))' == 'true'">
+    <ItemGroup>
+      <_CommunicationModelWrapper_Native Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.dll')" />
+      <_CommunicationModelWrapper_Native Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.pdb" Condition="Exists('$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.pdb')" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="CommunicationModelWrapper: Copy native libs to $(TargetDir)" />
+    <Copy SourceFiles="@(_CommunicationModelWrapper_Native)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

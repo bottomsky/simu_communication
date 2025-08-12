@@ -7,5 +7,51 @@
     <OutputType>Library</OutputType>
     <AssemblyName>CommunicationModelWrapper</AssemblyName>
     <RootNamespace>CommunicationModel</RootNamespace>
+
+    <!-- NuGet Package properties -->
+    <PackageId>CommunicationModelWrapper</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>YourName</Authors>
+    <Description>A C# wrapper for the CommunicationModel C++ library.</Description>
+    <PackageTags>native interop communication</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageOutputPath>..\..\nupkgs</PackageOutputPath>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
+
+  <!-- Copy native DLLs to build output during build -->
+  <ItemGroup>
+    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Package native DLLs into NuGet package -->
+  <ItemGroup>
+    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')">
+      <Pack>true</Pack>
+      <PackagePath>runtimes\win-x64\native\CommunicationModelCAPI.dll</PackagePath>
+    </None>
+    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')">
+      <Pack>true</Pack>
+      <PackagePath>runtimes\win-x64\native\CommunicationModelCAPI.pdb</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <!-- Include .targets file to ensure native libraries are copied -->
+  <ItemGroup>
+    <None Include="CommunicationModelWrapper.targets">
+      <Pack>true</Pack>
+      <PackagePath>build\CommunicationModelWrapper.targets</PackagePath>
+    </None>
+    <None Include="CommunicationModelWrapper.targets">
+      <Pack>true</Pack>
+      <PackagePath>buildTransitive\CommunicationModelWrapper.targets</PackagePath>
+    </None>
+  </ItemGroup>
+
 </Project>
