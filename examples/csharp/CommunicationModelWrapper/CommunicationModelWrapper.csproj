@@ -34,11 +34,11 @@
   <ItemGroup>
     <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')">
       <Pack>true</Pack>
-      <PackagePath>runtimes\win-x64\native\CommunicationModelCAPI.dll</PackagePath>
+      <PackagePath>runtimes\win-x64\native\%(Filename)%(Extension)</PackagePath>
     </None>
     <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')">
       <Pack>true</Pack>
-      <PackagePath>runtimes\win-x64\native\CommunicationModelCAPI.pdb</PackagePath>
+      <PackagePath>runtimes\win-x64\native\%(Filename)%(Extension)</PackagePath>
     </None>
   </ItemGroup>
 
