@@ -12,15 +12,37 @@
     
     <!-- Copy DLL directly to output directory -->
     <Copy SourceFiles="@(_CommunicationModelWrapper_DLL)" 
-          DestinationFiles="$(TargetDir)CommunicationModelCAPI.dll" 
+          DestinationFolder="$(TargetDir)" 
           SkipUnchangedFiles="true" 
           Condition="'@(_CommunicationModelWrapper_DLL)' != ''" />
     
     <!-- Copy PDB directly to output directory -->
     <Copy SourceFiles="@(_CommunicationModelWrapper_PDB)" 
-          DestinationFiles="$(TargetDir)CommunicationModelCAPI.pdb" 
+          DestinationFolder="$(TargetDir)" 
           SkipUnchangedFiles="true" 
           Condition="'@(_CommunicationModelWrapper_PDB)' != ''" />
+  </Target>
+
+  <!-- Copy native libs to publish directory -->
+  <Target Name="CommunicationModelWrapper_CopyNativeOnPublish" AfterTargets="Publish" Condition="'$([MSBuild]::IsOsPlatform(Windows))' == 'true' and '$(PublishDir)' != ''">
+    <ItemGroup>
+      <_CommunicationModelWrapper_DLL_Publish Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.dll')" />
+      <_CommunicationModelWrapper_PDB_Publish Include="$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.pdb" Condition="Exists('$(MSBuildThisFileDirectory)..\..\runtimes\win-x64\native\CommunicationModelCAPI.pdb')" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="CommunicationModelWrapper: Copy native libs to publish directory $(PublishDir)" />
+    
+    <!-- Copy DLL to publish directory -->
+    <Copy SourceFiles="@(_CommunicationModelWrapper_DLL_Publish)" 
+          DestinationFolder="$(PublishDir)" 
+          SkipUnchangedFiles="true" 
+          Condition="'@(_CommunicationModelWrapper_DLL_Publish)' != ''" />
+    
+    <!-- Copy PDB to publish directory -->
+    <Copy SourceFiles="@(_CommunicationModelWrapper_PDB_Publish)" 
+          DestinationFolder="$(PublishDir)" 
+          SkipUnchangedFiles="true" 
+          Condition="'@(_CommunicationModelWrapper_PDB_Publish)' != ''" />
   </Target>
 
 </Project>

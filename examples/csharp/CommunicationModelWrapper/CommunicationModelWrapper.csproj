@@ -20,15 +20,8 @@
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
-  <!-- Copy native DLLs to build output during build -->
-  <ItemGroup>
-    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+  <!-- Note: Native DLLs are NOT copied to the wrapper's output directory to avoid directory structure replication -->
+  <!-- Native libraries will be available through the .targets file when this package is consumed -->
 
   <!-- Package native DLLs into NuGet package -->
   <ItemGroup>
@@ -44,14 +37,9 @@
 
   <!-- Include .targets file to ensure native libraries are copied -->
   <ItemGroup>
-    <None Include="CommunicationModelWrapper.targets">
-      <Pack>true</Pack>
-      <PackagePath>build\CommunicationModelWrapper.targets</PackagePath>
-    </None>
-    <None Include="CommunicationModelWrapper.targets">
-      <Pack>true</Pack>
-      <PackagePath>buildTransitive\CommunicationModelWrapper.targets</PackagePath>
-    </None>
+    <!-- Include the .targets file in the package for both build and buildTransitive -->
+    <None Include="CommunicationModelWrapper.targets" PackagePath="build\CommunicationModelWrapper.targets" Pack="true" />
+    <None Include="CommunicationModelWrapper.targets" PackagePath="buildTransitive\CommunicationModelWrapper.targets" Pack="true" />
   </ItemGroup>
 
 </Project>

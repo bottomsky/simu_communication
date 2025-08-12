@@ -22,13 +22,35 @@
 
   <!-- 复制动态库到输出目录 -->
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <None Include="..\..\build\bin\CommunicationModelCAPI.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\CommunicationModelCAPI.dll')" />
-    <None Include="..\..\build\lib\CommunicationModelCAPI.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\lib\CommunicationModelCAPI.dll')" />
+    <None Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')" />
+    <None Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <None Include="..\..\build\lib\libCommunicationModelCAPI.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\lib\libCommunicationModelCAPI.so')" />
   </ItemGroup>
+
+  <!-- 发布时复制动态库到发布目录根目录 -->
+  <Target Name="CopyNativeLibsOnPublish" AfterTargets="Publish" Condition="'$(OS)' == 'Windows_NT'">
+    <ItemGroup>
+      <_NativeDLL Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')" />
+      <_NativePDB Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="CommunicationModelExample: Copy native libs to $(PublishDir)" />
+    
+    <!-- Copy DLL directly to publish directory -->
+    <Copy SourceFiles="@(_NativeDLL)" 
+          DestinationFolder="$(PublishDir)" 
+          SkipUnchangedFiles="true" 
+          Condition="'@(_NativeDLL)' != ''" />
+    
+    <!-- Copy PDB directly to publish directory -->
+    <Copy SourceFiles="@(_NativePDB)" 
+          DestinationFolder="$(PublishDir)" 
+          SkipUnchangedFiles="true" 
+          Condition="'@(_NativePDB)' != ''" />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="CommunicationModelWrapper\CommunicationModelWrapper.csproj" />
