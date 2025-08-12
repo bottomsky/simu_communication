@@ -388,3 +388,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# 忽略示例 NuGet 包输出目录
+examples/nupkgs/
