@@ -53,7 +53,7 @@
   </Target>
 
   <ItemGroup>
-    <ProjectReference Include="CommunicationModelWrapper\CommunicationModelWrapper.csproj" />
+    <PackageReference Include="CommunicationModelWrapper" Version="1.0.0" />
   </ItemGroup>
 
   <!-- 排除对子目录中的源文件的默认包含，避免与引用的库重复编译 -->
