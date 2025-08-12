@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <OutputType>Library</OutputType>
+    <AssemblyName>CommunicationModelWrapper</AssemblyName>
+    <RootNamespace>CommunicationModel</RootNamespace>
+  </PropertyGroup>
+</Project>

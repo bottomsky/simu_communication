@@ -30,4 +30,13 @@
     <None Include="..\..\build\lib\libCommunicationModelCAPI.so" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\lib\libCommunicationModelCAPI.so')" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="CommunicationModelWrapper\CommunicationModelWrapper.csproj" />
+  </ItemGroup>
+
+  <!-- 排除对子目录中的源文件的默认包含，避免与引用的库重复编译 -->
+  <ItemGroup>
+    <Compile Remove="CommunicationModelWrapper\**\*.cs" />
+  </ItemGroup>
+
 </Project>
