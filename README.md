@@ -43,9 +43,13 @@
 - **🌐 跨平台**: 支持Windows (VS2022) 和Linux (GCC)
 - **🔗 多语言支持**: 
   - **C++**: 直接使用核心库
-  - **C#**: 通过P/Invoke调用C API
+  - **C#**: 通过P/Invoke调用C API，提供NuGet包管理
   - **Python**: 通过ctypes加载动态库
   - **Java**: 通过JNA调用原生库
+- **🌐 Web API 集成**: 
+  - **RESTful API**: 完整的数据传输对象(DTO)定义
+  - **数据校验**: 智能参数验证和错误提示
+  - **JSON 序列化**: 标准化的API请求/响应格式
 - **📊 数据格式**: JSON格式的配置和测试数据
 - **🧪 测试体系**: 完整的单元测试、集成测试和验证数据
 - **🔍 测试框架**: 集成Google Test框架
@@ -86,11 +90,19 @@ signal-transmission-model-cpp/
 │       └── CommunicationModelCAPI.cpp       # C风格API实现
 ├── examples/
 │   └── csharp/
-│       ├── CommunicationModelWrapper.cs     # C#包装类（P/Invoke 封装）
+│       ├── CommunicationModelWrapper/       # C# NuGet包封装
+│       │   ├── CommunicationModelWrapper.cs     # C#包装类（P/Invoke 封装）
+│       │   ├── CommunicationModelWrapper.csproj # NuGet包项目文件
+│       │   └── CommunicationModelWrapper.targets # MSBuild目标文件（自动复制原生库）
+│       ├── WebApiContracts/                 # Web API 数据传输对象
+│       │   ├── CommunicationModelInitDto.cs     # 通信模型初始化DTO定义
+│       │   ├── CommunicationModelInitDtoValidator.cs # 数据校验器
+│       │   └── CommunicationModelInit.sample.json   # 示例JSON文件
 │       ├── Program.cs                       # C#示例程序（支持 --interop-test 入口）
 │       ├── Tests/
 │       │   └── InteropTests.cs              # C#/C++ 互操作与内存布局一致性测试
-│       └── CommunicationModelExample.csproj # C#项目文件
+│       ├── CommunicationModelExample.csproj # C#项目文件
+│       └── CommunicationModelExample.sln    # Visual Studio解决方案文件
 ├── cmake/
 │   └── CommunicationModelConfig.cmake       # CMake配置文件
 ├── CMakeLists.txt                           # 主CMake文件
@@ -237,7 +249,86 @@ signal-transmission-model-cpp/
    ctest -C Release --output-on-failure
    ```
 
+5. **.NET 与 Web API 快速开始（可选）**
+   - DTO 与校验器位置：examples/csharp/WebApiContracts/
+   - 反序列化示例（System.Text.Json）：
+     ```csharp
+     using System.Text.Json;
+     using CommunicationModel.WebApi.Contracts;
+     var json = File.ReadAllText("examples/csharp/WebApiContracts/CommunicationModelInit.sample.json");
+     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+     var dto = JsonSerializer.Deserialize<CommunicationModelInitDto>(json, options)!;
+     var result = CommunicationModelInitDtoValidator.Validate(dto);
+     if (!result.IsValid)
+     {
+         Console.WriteLine("参数校验失败:");
+         foreach (var e in result.Errors) Console.WriteLine($"- {e.Message}");
+         return;
+     }
+     Console.WriteLine("参数校验通过");
+     ```
+
 ## 使用示例
+
+### 基于 DTO 的 C# 初始化与调用（示例）
+
+```csharp
+using System.Text.Json;
+using CommunicationModel;
+using CommunicationModel.WebApi.Contracts;
+
+var json = File.ReadAllText("examples/csharp/WebApiContracts/CommunicationModelInit.sample.json");
+var dto = JsonSerializer.Deserialize<CommunicationModelInitDto>(json)!;
+var vr = CommunicationModelInitDtoValidator.Validate(dto);
+if (!vr.IsValid)
+{
+    Console.WriteLine("DTO 参数校验未通过");
+    foreach (var e in vr.Errors) Console.WriteLine($"- {e.Message}");
+    return;
+}
+
+using var api = new CommunicationModelAPI();
+
+// 映射 DTO -> C API（示例，不同项目中可抽出到 Mapper）
+var env = new CommEnvironment
+{
+    EnvironmentType = (CommEnvironmentType)dto.Environment.EnvironmentType,
+    Frequency = dto.Environment.Frequency,
+    Bandwidth = dto.Environment.Bandwidth,
+    Distance = dto.Environment.Distance,
+    TransmitPower = dto.Environment.TransmitPower,
+    NoisePower = dto.Environment.NoisePower,
+    Temperature = dto.Environment.Temperature,
+    Humidity = dto.Environment.Humidity,
+    AtmosphericPressure = dto.Environment.AtmosphericPressure
+};
+api.SetEnvironment(env);
+
+if (dto.Jamming?.IsJammed == true)
+{
+    var jam = new CommJammingEnvironment
+    {
+        IsJammed = 1,
+        JammerType = (CommJammerType)dto.Jamming.JammerType,
+        JammerPower = dto.Jamming.JammerPower,
+        JammerFrequency = dto.Jamming.JammerFrequency,
+        JammerBandwidth = dto.Jamming.JammerBandwidth,
+        JammerDistance = dto.Jamming.JammerDistance,
+        JammerDensity = dto.Jamming.JammerDensity,
+        JammerFrequencies = IntPtr.Zero,
+        JammerFrequencyCount = 0
+    };
+    api.SetJammingEnvironment(jam);
+}
+
+// 设置场景（抗干扰场景通过 Scenario 控制）
+api.SetScenario((CommScenario)dto.Scenario);
+
+// 示例调用：获取性能与链路状态
+var perf = api.CalculatePerformance();
+var status = api.CalculateLinkStatus();
+Console.WriteLine($"有效距离: {perf.EffectiveRange:F2} km, SNR: {status.SignalToNoiseRatio:F2} dB, BER: {status.BitErrorRate:E2}");
+```
 
 ### C++ API 使用
 
