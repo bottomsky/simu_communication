@@ -1,0 +1,28 @@
+{
+  "Scenario": 2,
+  "Environment": {
+    "Frequency": 2400,
+    "Bandwidth": 20,
+    "TransmitPower": 30,
+    "NoisePower": -100,
+    "Distance": 15,
+    "EnvironmentType": 1,
+    "Temperature": 20,
+    "Humidity": 50,
+    "AtmosphericPressure": 101.3
+  },
+  "Jamming": {
+    "IsJammed": true,
+    "JammerType": 1,
+    "JammerPower": -20,
+    "JammerFrequency": 2405,
+    "JammerBandwidth": 1,
+    "JammerDistance": 5,
+    "JammerDensity": 0.2,
+    "JammerFrequencies": [2405, 2410]
+  },
+  "AntiJamming": {
+    "Enable": true,
+    "TargetBER": 0.01
+  }
+}
