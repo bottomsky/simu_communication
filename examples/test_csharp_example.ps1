@@ -2,9 +2,14 @@
 # 用于编译、复制动态库并运行 C# 示例项目
 
 param(
+    [Parameter(HelpMessage="构建配置（Debug 或 Release），默认 Debug")]
+    [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
+    
+    [Parameter(HelpMessage="清理输出目录后再构建")]
     [switch]$Clean = $false,
-    [switch]$Verbose = $false,
+    
+    [Parameter(HelpMessage="构建并打包 CommunicationModelWrapper 项目为 NuGet 包")]
     [switch]$Pack = $false
 )
 
@@ -121,7 +126,7 @@ function Build-CSharpProject {
     Write-Step "编译 C# 项目..."
     
     try {
-        $verbosityLevel = if ($Verbose) { "normal" } else { "minimal" }
+        $verbosityLevel = if ($VerbosePreference -eq 'Continue') { "normal" } else { "minimal" }
         $buildArgs = @(
             "build"
             $CSharpSolutionPath
@@ -129,9 +134,7 @@ function Build-CSharpProject {
             "--verbosity", $verbosityLevel
         )
         
-        if ($Verbose) {
-            Write-ColorOutput "执行命令: dotnet $($buildArgs -join ' ')" "Gray"
-        }
+        Write-Verbose ("执行命令: dotnet {0}" -f ($buildArgs -join ' '))
         
         & dotnet @buildArgs
         
@@ -160,9 +163,7 @@ function Pack-CSharpWrapper {
             "--no-build" # 已经在解决方案级别构建过
         )
 
-        if ($Verbose) {
-            Write-ColorOutput "执行命令: dotnet $($packArgs -join ' ')" "Gray"
-        }
+        Write-Verbose ("执行命令: dotnet {0}" -f ($packArgs -join ' '))
 
         & dotnet @packArgs
 
@@ -378,9 +379,7 @@ function Run-CSharpProject {
             "--no-build"  # 不重新构建，使用已编译的版本
         )
         
-        if ($Verbose) {
-            Write-ColorOutput "执行命令: dotnet $($runArgs -join ' ')" "Gray"
-        }
+        Write-Verbose ("执行命令: dotnet {0}" -f ($runArgs -join ' '))
         
         Write-ColorOutput "--- C# 程序输出开始 ---" "Yellow"
         & dotnet @runArgs
