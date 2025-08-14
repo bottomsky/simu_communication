@@ -43,7 +43,7 @@
 - **🌐 跨平台**: 支持Windows (VS2022) 和Linux (GCC)
 - **🔗 多语言支持**: 
   - **C++**: 直接使用核心库
-  - **C#**: 通过P/Invoke调用C API，提供NuGet包管理
+  - **C#**: 通过P/Invoke调用C API，提供NuGet包管理（包含完整依赖链）
   - **Python**: 通过ctypes加载动态库
   - **Java**: 通过JNA调用原生库
 - **🌐 Web API 集成**: 
@@ -193,8 +193,8 @@ signal-transmission-model-cpp/
      ```
      build/
      ├── bin/Release/
-     │   ├── CommunicationModel.dll           # C++ API动态库
-     │   └── CommunicationModelCAPI.dll       # C API动态库
+     │   ├── CommunicationModelShared.dll     # C++ 核心动态库
+     │   └── CommunicationModelCAPI.dll       # C API动态库（依赖 CommunicationModelShared.dll）
      └── lib/Release/
          └── CommunicationModel.lib           # 静态库
 
@@ -220,16 +220,16 @@ signal-transmission-model-cpp/
      cmake --install .
      ```
      输出文件：
-     ```
-     build/
-     └── lib/
-         ├── libCommunicationModel.so         # C++ API动态库
-         ├── libCommunicationModel.a          # 静态库
-         └── libCommunicationModelCAPI.so     # C API动态库
+      ```
+      build/
+      └── lib/
+          ├── libCommunicationModelShared.so   # C++ 核心动态库
+          ├── libCommunicationModel.a          # 静态库
+          └── libCommunicationModelCAPI.so     # C API动态库（依赖 libCommunicationModelShared.so）
 
-     install/
-     └── include/CommunicationModel/          # 头文件
-     ```
+      install/
+      └── include/CommunicationModel/          # 头文件
+      ```
 
 3. **手动使用CMake（可选）**
    - 多配置生成器（如 VS2022）：忽略 CMAKE_BUILD_TYPE，使用 --config 控制
@@ -267,6 +267,19 @@ signal-transmission-model-cpp/
      }
      Console.WriteLine("参数校验通过");
      ```
+
+### NuGet 包与原生 DLL 说明（重要）
+
+- C# 包装器 NuGet（examples/csharp/CommunicationModelWrapper）会在 `runtimes/win-x64/native/` 中包含并分发以下原生文件：
+  - CommunicationModelCAPI.dll / .pdb
+  - CommunicationModelShared.dll / .pdb
+- 包内置的 MSBuild .targets（build 与 buildTransitive）会在以下阶段自动复制上述原生 DLL 到输出/发布目录：
+  - 编译/构建阶段（AfterTargets: Compile;Build;ResolveAssemblyReferences）
+  - 发布阶段（AfterTargets: Publish）
+- 使用前置条件：打包前请先构建 C++ 产物，确保 `build/bin/$(Configuration)/` 下存在上述 DLL/PDB（Debug 或 Release）。
+- 常见问题：若运行时报“找不到指定的模块”，通常是依赖 DLL 未在运行目录，或 CPU 架构不一致。此包已包含 Shared 依赖并自动拷贝，确保：
+  - 你的项目为 x64（PlatformTarget = x64 / RuntimeIdentifier = win-x64）；
+  - 使用对应配置的包（Debug/Release）。
 
 ## 使用示例
 
@@ -630,7 +643,11 @@ if (rc != 0) {
 
 ### 常见问题
 
-- **库加载失败**: 检查库路径、依赖库（MSVCRuntime等）
+- **库加载失败**: 检查库路径、依赖库（MSVCRuntime等）。若提示“找不到指定的模块”：
+  - 确认 CommunicationModelCAPI 与 CommunicationModelShared DLL 是否同目录；
+  - 使用 dumpbin /dependents 或 Dependencies 工具检查依赖链；
+  - 确认工程为 x64，并与 DLL 架构一致；
+  - 使用本仓库提供的 NuGet 包（已包含 Shared 依赖与自动拷贝 .targets）可避免此问题。
 - **符号未导出**: 确保使用 Release 构建，检查导出宏
 - **内存泄漏**: 始终匹配 Alloc/Free 调用
 - **跨平台问题**: 注意路径分隔符、编码格式
