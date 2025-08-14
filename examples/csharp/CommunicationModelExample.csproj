@@ -24,6 +24,9 @@
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
     <None Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')" />
     <None Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')" />
+    <!-- 新增：复制依赖的共享库 -->
+    <None Include="..\..\build\bin\$(Configuration)\CommunicationModelShared.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelShared.dll')" />
+    <None Include="..\..\build\bin\$(Configuration)\CommunicationModelShared.pdb" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelShared.pdb')" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
@@ -35,30 +38,26 @@
     <ItemGroup>
       <_NativeDLL Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.dll')" />
       <_NativePDB Include="..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')" />
+      <!-- 新增：发布 Shared 依赖 -->
+      <_NativeDLL Include="..\..\build\bin\$(Configuration)\CommunicationModelShared.dll" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelShared.dll')" />
+      <_NativePDB Include="..\..\build\bin\$(Configuration)\CommunicationModelShared.pdb" Condition="Exists('..\..\build\bin\$(Configuration)\CommunicationModelShared.pdb')" />
     </ItemGroup>
 
     <Message Importance="high" Text="CommunicationModelExample: Copy native libs to $(PublishDir)" />
     
     <!-- Copy DLL directly to publish directory -->
-    <Copy SourceFiles="@(_NativeDLL)" 
-          DestinationFolder="$(PublishDir)" 
-          SkipUnchangedFiles="true" 
-          Condition="'@(_NativeDLL)' != ''" />
+    <Copy SourceFiles="@(_NativeDLL)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" Condition="'@(_NativeDLL)' != ''" />
     
     <!-- Copy PDB directly to publish directory -->
-    <Copy SourceFiles="@(_NativePDB)" 
-          DestinationFolder="$(PublishDir)" 
-          SkipUnchangedFiles="true" 
-          Condition="'@(_NativePDB)' != ''" />
+    <Copy SourceFiles="@(_NativePDB)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" Condition="'@(_NativePDB)' != ''" />
   </Target>
 
-  <ItemGroup>
-    <PackageReference Include="CommunicationModelWrapper" Version="1.0.0" />
-  </ItemGroup>
-
-  <!-- 排除对子目录中的源文件的默认包含，避免与引用的库重复编译 -->
+   <!-- 排除对子目录中的源文件的默认包含，避免与引用的库重复编译 -->
   <ItemGroup>
     <Compile Remove="CommunicationModelWrapper\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="CommunicationModelWrapper\CommunicationModelWrapper.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,6 +5,9 @@
   <ItemGroup Condition="'$([MSBuild]::IsOsPlatform(Windows))' == 'true'">
     <_CommunicationModelWrapper_DLL Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.dll')" />
     <_CommunicationModelWrapper_PDB Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.pdb" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.pdb')" />
+    <!-- 新增：Shared 依赖 -->
+    <_CommunicationModelWrapper_DLL Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.dll')" />
+    <_CommunicationModelWrapper_PDB Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.pdb" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.pdb')" />
   </ItemGroup>
 
   <!-- Copy native libs at multiple stages with a single target -->
@@ -34,6 +37,9 @@
     <ItemGroup>
       <_CommunicationModelWrapper_DLL_Publish Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.dll')" />
       <_CommunicationModelWrapper_PDB_Publish Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.pdb" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelCAPI.pdb')" />
+      <!-- 新增：Shared 依赖 -->
+      <_CommunicationModelWrapper_DLL_Publish Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.dll')" />
+      <_CommunicationModelWrapper_PDB_Publish Include="$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.pdb" Condition="Exists('$(MSBuildThisFileDirectory)..\runtimes\win-x64\native\CommunicationModelShared.pdb')" />
     </ItemGroup>
 
     <Message Importance="high" Text="CommunicationModelWrapper: Copy native libs to publish directory $(PublishDir)" />

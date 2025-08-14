@@ -15,7 +15,8 @@
     <Description>A C# wrapper for the CommunicationModel C++ library.</Description>
     <PackageTags>native interop communication</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageOutputPath>..\..\nupkgs</PackageOutputPath>
+    <!-- Change package output to examples\csharp\nupkgs -->
+    <PackageOutputPath>..\nupkgs</PackageOutputPath>
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
@@ -30,6 +31,15 @@
       <PackagePath>runtimes\win-x64\native\%(Filename)%(Extension)</PackagePath>
     </None>
     <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelCAPI.pdb')">
+      <Pack>true</Pack>
+      <PackagePath>runtimes\win-x64\native\%(Filename)%(Extension)</PackagePath>
+    </None>
+    <!-- 新增：将 Shared 依赖打包到相同目录 -->
+    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelShared.dll" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelShared.dll')">
+      <Pack>true</Pack>
+      <PackagePath>runtimes\win-x64\native\%(Filename)%(Extension)</PackagePath>
+    </None>
+    <None Include="..\..\..\build\bin\$(Configuration)\CommunicationModelShared.pdb" Condition="Exists('..\..\..\build\bin\$(Configuration)\CommunicationModelShared.pdb')">
       <Pack>true</Pack>
       <PackagePath>runtimes\win-x64\native\%(Filename)%(Extension)</PackagePath>
     </None>
